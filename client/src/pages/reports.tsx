@@ -124,8 +124,8 @@ export default function Reports() {
   });
 
   const deleteReportMutation = useMutation({
-    mutationFn: async ({ routeId, reportId }: { routeId: number; reportId: number }) => {
-      return apiRequest('DELETE', `/api/v1/routes/${routeId}/reports/${reportId}`, undefined);
+    mutationFn: async ({ reportId }: { reportId: number }) => {
+      return apiRequest('DELETE', `/api/v1/reports/${reportId}`, undefined);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [api.routes.getAll()] });
@@ -458,7 +458,6 @@ export default function Reports() {
                     variant="ghost"
                     size="icon"
                     onClick={() => setReportToDelete(report)}
-                    disabled={!report.route_id}
                     data-testid={`button-delete-report-${report.id}`}
                   >
                     <Trash2 className="w-4 h-4 text-destructive" />
@@ -530,9 +529,8 @@ export default function Reports() {
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
-                if (reportToDelete && reportToDelete.route_id) {
+                if (reportToDelete) {
                   deleteReportMutation.mutate({
-                    routeId: reportToDelete.route_id,
                     reportId: reportToDelete.id,
                   });
                 }
