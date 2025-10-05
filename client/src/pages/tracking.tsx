@@ -45,6 +45,12 @@ export default function Tracking() {
     ? allTracks.filter(track => track.run === selectedRun)
     : allTracks;
 
+  const latestTrack = tracks.length > 0 
+    ? tracks.reduce((latest, track) => 
+        new Date(track.created_at) > new Date(latest.created_at) ? track : latest
+      )
+    : null;
+
   const { data: reports = [] } = useQuery<Report[]>({
     queryKey: ['/api/v1/reports', selectedRoute?.id, selectedRun],
     queryFn: async () => {
@@ -113,13 +119,31 @@ export default function Tracking() {
                     </SelectContent>
                   </Select>
                 </div>
-                {tracks.length > 0 && (
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <Activity className="w-4 h-4 text-chart-3" />
-                    <span>{tracks.length} śladów GPS - odświeżanie co 15s</span>
-                  </div>
-                )}
               </div>
+              {latestTrack && latestTrack.coordinates && (
+                <div className="mt-3 pt-3 border-t border-card-border">
+                  <div className="flex items-start gap-3">
+                    <MapPin className="w-4 h-4 text-chart-3 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-foreground mb-1">Ostatnia lokalizacja</p>
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground font-mono">
+                          {latestTrack.coordinates.latitude.toFixed(6)}, {latestTrack.coordinates.longitude.toFixed(6)}
+                        </p>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <Clock className="w-3 h-3" />
+                          <span>
+                            {formatDistanceToNow(new Date(latestTrack.created_at), { addSuffix: true, locale: pl })}
+                          </span>
+                          <Badge variant="secondary" className="text-xs">
+                            {tracks.length} śladów - odświeżanie co 15s
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </Card>
           )}
           

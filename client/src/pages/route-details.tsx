@@ -12,12 +12,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Bus, Train, MapPin, ArrowLeft, Clock, Navigation, AlertTriangle } from "lucide-react";
-import { Route, Schedule, Stop, Report } from "@shared/schema";
+import { Bus, Train, ArrowLeft, Clock, Navigation } from "lucide-react";
+import { Route, Schedule, Stop } from "@shared/schema";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { useMemo } from "react";
-import { RouteMap } from "@/components/route-map";
 
 interface ScheduleMatrix {
   runs: number[];
@@ -37,11 +36,6 @@ export default function RouteDetails() {
 
   const { data: route, isLoading } = useQuery<Route>({
     queryKey: [api.routes.getById(routeId!)],
-    enabled: routeId !== null,
-  });
-
-  const { data: reports = [] } = useQuery<Report[]>({
-    queryKey: [api.routes.getReports(routeId!)],
     enabled: routeId !== null,
   });
 
@@ -324,44 +318,6 @@ export default function RouteDetails() {
           </div>
         </CardHeader>
       </Card>
-
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between gap-4">
-            <CardTitle className="flex items-center gap-2">
-              <MapPin className="w-5 h-5 text-primary" />
-              Mapa trasy i zgłoszenia
-            </CardTitle>
-            {reports.length > 0 && (
-              <Badge variant="secondary">
-                <AlertTriangle className="w-3 h-3 mr-1" />
-                {reports.length} {reports.length === 1 ? 'zgłoszenie' : 'zgłoszeń'}
-              </Badge>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="h-[600px] w-full">
-            <RouteMap 
-              stops={route.stops || []}
-              reports={reports}
-              className="h-full w-full"
-              data-testid="map-route-details"
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      {reports.length === 0 && (
-        <Card>
-          <CardContent className="py-12">
-            <div className="text-center">
-              <AlertTriangle className="w-8 h-8 text-muted-foreground mx-auto mb-2 opacity-50" />
-              <p className="text-sm text-muted-foreground">Brak zgłoszeń dla tej trasy</p>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {schedulesByDestination.length > 0 && (
         <div className="space-y-6">
