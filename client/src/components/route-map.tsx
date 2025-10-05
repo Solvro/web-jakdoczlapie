@@ -105,12 +105,6 @@ export function RouteMap({
           weight: 3,
           opacity: 0.7,
         }).addTo(map);
-
-        map.fitBounds(polylineRef.current.getBounds(), {
-          padding: [50, 50],
-        });
-      } else if (coordinates.length === 1) {
-        map.setView(coordinates[0], 13);
       }
     }
   }, [stops]);
@@ -241,6 +235,52 @@ export function RouteMap({
       });
     }
   }, [reports]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    const allBounds: L.LatLngBounds[] = [];
+
+    if (polylineRef.current) {
+      allBounds.push(polylineRef.current.getBounds());
+    }
+    
+    if (trackPolylineRef.current) {
+      allBounds.push(trackPolylineRef.current.getBounds());
+    }
+
+    const reportCoordinates: [number, number][] = [];
+    reports.forEach(report => {
+      if (report.coordinates) {
+        reportCoordinates.push([report.coordinates.latitude, report.coordinates.longitude]);
+      }
+    });
+
+    if (reportCoordinates.length > 0) {
+      const reportBounds = L.latLngBounds(reportCoordinates);
+      allBounds.push(reportBounds);
+    }
+
+    if (allBounds.length > 0) {
+      const combinedBounds = allBounds[0];
+      allBounds.slice(1).forEach(bounds => combinedBounds.extend(bounds));
+      map.fitBounds(combinedBounds, { padding: [50, 50] });
+    } else if (reportCoordinates.length === 1) {
+      map.setView(reportCoordinates[0], 14);
+    } else {
+      const stopCoordinates: [number, number][] = [];
+      stops.forEach(stop => {
+        if (stop.coordinates) {
+          stopCoordinates.push([stop.coordinates.latitude, stop.coordinates.longitude]);
+        }
+      });
+      
+      if (stopCoordinates.length === 1) {
+        map.setView(stopCoordinates[0], 13);
+      }
+    }
+  }, [stops, tracks, reports]);
 
   useEffect(() => {
     if (!mapRef.current) return;
