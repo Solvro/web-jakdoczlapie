@@ -46,12 +46,17 @@ export default function Reports() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedRouteId, setSelectedRouteId] = useState<number | null>(null);
   const { toast } = useToast();
-  const { selectedOperator } = useOperator();
+  const { selectedOperators } = useOperator();
   
-  const { data: routesData, isLoading: isLoadingRoutes } = useQuery<Route[]>({
-    queryKey: [api.operators.getData(selectedOperator!)],
-    enabled: !!selectedOperator,
-  });
+  const routeQueries = selectedOperators.map(operator => 
+    useQuery<Route[]>({
+      queryKey: [api.operators.getData(operator)],
+      enabled: !!operator,
+    })
+  );
+
+  const routesData = routeQueries.flatMap(q => q.data || []);
+  const isLoadingRoutes = routeQueries.some(q => q.isLoading);
 
   const { data: selectedRouteDetails } = useQuery<Route>({
     queryKey: [api.routes.getById(selectedRouteId!)],
@@ -83,9 +88,9 @@ export default function Reports() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [api.routes.getAll()] });
-      if (selectedOperator) {
-        queryClient.invalidateQueries({ queryKey: [api.operators.getData(selectedOperator)] });
-      }
+      selectedOperators.forEach(operator => {
+        queryClient.invalidateQueries({ queryKey: [api.operators.getData(operator)] });
+      });
       setIsDialogOpen(false);
       setSelectedRouteId(null);
       toast({

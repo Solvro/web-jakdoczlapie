@@ -16,16 +16,21 @@ import { useToast } from "@/hooks/use-toast";
 export default function Routes() {
   const [searchQuery, setSearchQuery] = useState("");
   const [, setLocation] = useLocation();
-  const { selectedOperator } = useOperator();
+  const { selectedOperators } = useOperator();
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [importedData, setImportedData] = useState<any>(null);
   const { toast } = useToast();
   
-  const { data: routes, isLoading } = useQuery<Route[]>({
-    queryKey: [api.operators.getData(selectedOperator!)],
-    enabled: !!selectedOperator,
-  });
+  const routeQueries = selectedOperators.map(operator => 
+    useQuery<Route[]>({
+      queryKey: [api.operators.getData(operator)],
+      enabled: !!operator,
+    })
+  );
+
+  const routes = routeQueries.flatMap(q => q.data || []);
+  const isLoading = routeQueries.some(q => q.isLoading);
 
   const filteredRoutes = routes?.filter(route =>
     route.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||

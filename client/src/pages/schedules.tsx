@@ -33,15 +33,19 @@ export default function Schedules() {
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [importedData, setImportedData] = useState<any>(null);
-  const { selectedOperator } = useOperator();
+  const { selectedOperators } = useOperator();
   const { toast } = useToast();
   
-  const { data: routesData, isLoading: isLoadingRoutes } = useQuery<Route[]>({
-    queryKey: [api.operators.getData(selectedOperator!)],
-    enabled: !!selectedOperator,
-  });
+  const routeQueries = selectedOperators.map(operator => 
+    useQuery<Route[]>({
+      queryKey: [api.operators.getData(operator)],
+      enabled: !!operator,
+    })
+  );
 
-  const stops = routesData?.flatMap(route => route.stops || []) || [];
+  const routesData = routeQueries.flatMap(q => q.data || []);
+  const stops = routesData.flatMap(route => route.stops || []);
+  const isLoadingRoutes = routeQueries.some(q => q.isLoading);
   const isLoading = isLoadingRoutes;
 
   const filteredStops = stops?.filter(stop =>
@@ -142,7 +146,9 @@ export default function Schedules() {
         }
       }
       
-      queryClient.invalidateQueries({ queryKey: [api.operators.getData(selectedOperator!)] });
+      selectedOperators.forEach(operator => {
+        queryClient.invalidateQueries({ queryKey: [api.operators.getData(operator)] });
+      });
       
       toast({
         title: "Sukces",
