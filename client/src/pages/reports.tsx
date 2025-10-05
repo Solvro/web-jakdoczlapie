@@ -11,6 +11,16 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Form,
   FormControl,
   FormField,
@@ -27,7 +37,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { AlertTriangle, Plus, MapPin, Clock, Info } from "lucide-react";
+import { AlertTriangle, Plus, MapPin, Clock, Info, Trash2 } from "lucide-react";
 import { Report, Route, CreateReportInput, createReportSchema, reportTypes } from "@shared/schema";
 import { api } from "@/lib/api";
 import { useState, useMemo, useEffect } from "react";
@@ -45,6 +55,7 @@ import { RouteMap } from "@/components/route-map";
 export default function Reports() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedRouteId, setSelectedRouteId] = useState<number | null>(null);
+  const [reportToDelete, setReportToDelete] = useState<Report | null>(null);
   const { toast } = useToast();
   const { selectedOperator } = useOperator();
   
@@ -58,7 +69,16 @@ export default function Reports() {
     enabled: selectedRouteId !== null,
   });
 
-  const reports = routesData?.flatMap(route => route.reports || []) || [];
+  const reports = useMemo(() => {
+    if (!routesData) return [];
+    return routesData.flatMap(route => 
+      (route.reports || []).map(report => ({
+        ...report,
+        route_id: report.route_id || route.id,
+      }))
+    );
+  }, [routesData]);
+  
   const isLoading = isLoadingRoutes;
 
   const runs = useMemo(() => {
@@ -99,6 +119,30 @@ export default function Reports() {
         variant: "destructive",
         title: "Błąd",
         description: "Nie udało się utworzyć raportu",
+      });
+    },
+  });
+
+  const deleteReportMutation = useMutation({
+    mutationFn: async ({ routeId, reportId }: { routeId: number; reportId: number }) => {
+      return apiRequest('DELETE', `/api/v1/routes/${routeId}/reports/${reportId}`, undefined);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.routes.getAll()] });
+      if (selectedOperator) {
+        queryClient.invalidateQueries({ queryKey: [api.operators.getData(selectedOperator)] });
+      }
+      setReportToDelete(null);
+      toast({
+        title: "Raport usunięty",
+        description: "Raport został pomyślnie usunięty",
+      });
+    },
+    onError: () => {
+      toast({
+        variant: "destructive",
+        title: "Błąd",
+        description: "Nie udało się usunąć raportu",
       });
     },
   });
@@ -410,6 +454,15 @@ export default function Reports() {
                       {report.description || 'Brak opisu'}
                     </CardTitle>
                   </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setReportToDelete(report)}
+                    disabled={!report.route_id}
+                    data-testid={`button-delete-report-${report.id}`}
+                  >
+                    <Trash2 className="w-4 h-4 text-destructive" />
+                  </Button>
                 </div>
               </CardHeader>
               <CardContent className="pt-0">
@@ -450,6 +503,49 @@ export default function Reports() {
           </CardContent>
         </Card>
       )}
+
+      <AlertDialog open={!!reportToDelete} onOpenChange={(open) => !open && setReportToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Czy na pewno chcesz usunąć ten raport?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Ta operacja jest nieodwracalna. Raport zostanie trwale usunięty.
+              {reportToDelete && (
+                <div className="mt-3 p-3 bg-muted rounded-md">
+                  <p className="text-sm font-medium text-foreground">
+                    {reportToDelete.description || 'Brak opisu'}
+                  </p>
+                  {reportToDelete.type && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Typ: {getReportTypeLabel(reportToDelete.type)}
+                    </p>
+                  )}
+                </div>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-delete">
+              Anuluj
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (reportToDelete && reportToDelete.route_id) {
+                  deleteReportMutation.mutate({
+                    routeId: reportToDelete.route_id,
+                    reportId: reportToDelete.id,
+                  });
+                }
+              }}
+              disabled={deleteReportMutation.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              data-testid="button-confirm-delete"
+            >
+              {deleteReportMutation.isPending ? 'Usuwanie...' : 'Usuń raport'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
