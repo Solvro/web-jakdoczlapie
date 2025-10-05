@@ -3,7 +3,7 @@ import { useRoute, useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import {
   Table,
   TableBody,
@@ -170,8 +170,8 @@ export default function RouteDetails() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <ScrollArea className="w-full max-h-[600px]">
-            <div className="border border-card-border rounded-md overflow-hidden">
+          <div className="border border-card-border rounded-md overflow-hidden">
+            <ScrollArea className="w-full max-h-[600px]">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -255,13 +255,15 @@ export default function RouteDetails() {
                   })}
                 </TableBody>
               </Table>
-            </div>
-            {matrix.runs.length > 5 && (
-              <p className="text-xs text-muted-foreground mt-2 text-center">
-                Przewiń w prawo aby zobaczyć więcej kursów →
-              </p>
-            )}
-          </ScrollArea>
+              <ScrollBar orientation="horizontal" />
+              <ScrollBar orientation="vertical" />
+            </ScrollArea>
+          </div>
+          {matrix.runs.length > 5 && (
+            <p className="text-xs text-muted-foreground mt-2 text-center">
+              Przewiń w prawo aby zobaczyć więcej kursów →
+            </p>
+          )}
         </CardContent>
       </Card>
     );
