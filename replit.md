@@ -98,10 +98,36 @@ Preferred communication style: Simple, everyday language.
 - **Development**: Replit-specific plugins for runtime errors and cartographer
 
 **API Integration**:
-- RESTful API consumed through proxy
-- OpenAPI/Swagger documentation available in attached_assets
-- Endpoints for routes, stops, schedules, reports, and tracking data
-- Support for geospatial queries (latitude/longitude/radius parameters)
+- RESTful API consumed through proxy at `/api/v1/*`
+- OpenAPI/Swagger documentation available in `attached_assets/swagger_1759631884723.yml`
+- All requests proxied to external API: `https://jak-doczlapie-hackyeah.b.solvro.pl/api/v1`
+
+**Available Endpoints**:
+
+1. **Routes API**
+   - `GET /api/v1/routes` - Find routes with journey planning
+     - Query params: `fromLatitude`, `fromLongitude`, `toLatitude`, `toLongitude`, `radius` (default: 1000m), `transferRadius` (default: 200m), `maxTransfers` (default: 2)
+     - Returns: Array of journey options with transfers
+   - `GET /api/v1/routes/{id}` - Get route details
+     - Query params: `destination` (optional filter)
+     - Returns: Route with stops and schedules
+   - `POST /api/v1/routes/{id}/reports` - Submit incident report
+     - Body: `{ run, type, description, coordinates: { latitude, longitude }, image }`
+     - Report types: delay, accident, press, failure, did_not_arrive, change, other, diffrent_stop_location, request_stop
+   - `GET /api/v1/routes/{id}/reports` - Get reports for route
+   - `POST /api/v1/routes/{id}/tracks` - Submit vehicle tracking data
+     - Body: `{ coordinates: { latitude, longitude }, run }`
+
+2. **Stops API**
+   - `GET /api/v1/stops` - Get nearby stops
+     - Query params: `latitude`, `longitude`, `radius` (meters)
+   - `GET /api/v1/stops/{id}` - Get stop details with schedules
+
+**Geospatial Features**:
+- Support for coordinate-based queries (latitude/longitude/radius)
+- Journey planning with multi-modal transfers (bus/train/tram)
+- Distance calculations and routing optimization
+- Real-time vehicle tracking with GeoJSON Point format
 
 **Authentication Flow**:
 - Authorization headers supported in proxy

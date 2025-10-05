@@ -1,4 +1,4 @@
-const API_BASE_URL = 'https://jak-doczlapie-hackyeah.b.solvro.pl/api/v1';
+const API_BASE_URL = '/api/v1';
 
 export const api = {
   routes: {
@@ -8,6 +8,8 @@ export const api = {
       toLatitude?: number;
       toLongitude?: number;
       radius?: number;
+      transferRadius?: number;
+      maxTransfers?: number;
     }) => {
       const searchParams = new URLSearchParams();
       if (params) {
@@ -19,7 +21,13 @@ export const api = {
       }
       return `${API_BASE_URL}/routes${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
     },
-    getById: (id: number) => `${API_BASE_URL}/routes/${id}`,
+    getById: (id: number, destination?: string) => {
+      const searchParams = new URLSearchParams();
+      if (destination) {
+        searchParams.append('destination', destination);
+      }
+      return `${API_BASE_URL}/routes/${id}${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
+    },
     getReports: (id: number) => `${API_BASE_URL}/routes/${id}/reports`,
     createReport: (id: number) => `${API_BASE_URL}/routes/${id}/reports`,
     createTrack: (id: number) => `${API_BASE_URL}/routes/${id}/tracks`,
