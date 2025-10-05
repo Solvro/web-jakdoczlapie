@@ -70,7 +70,11 @@ Preferred communication style: Simple, everyday language.
 3. **Reports** (`/reports`) - Incident and delay reporting
 4. **Schedules** (`/schedules`) - Stop schedules and timetables
 5. **Tracking** (`/tracking`) - Real-time vehicle location monitoring with map display, last vehicle location with timestamp, GPS tracks history table at bottom, and auto-refresh every 15 seconds
-6. **Search** (`/search`) - Journey planning with interactive map for selecting start and end points, automatic connection search with progressive radius increase (1000m-25000m), displays journey options with routes, transfers, and distance
+6. **Search** (`/search`) - Journey planning with interactive map for selecting start and end points
+   - **Auto-expanding radius**: Progressive search radius increase (1000m-25000m in 500m steps)
+   - **Journey results**: Display departure/arrival times and locations, travel time, number of transfers
+   - **Expandable details**: Click to reveal all stops with scheduled times for each route
+   - **Delay handling**: Automatically detects delay reports, adds delay time to all schedules, displays times in red with warning badge
 
 **Data Models** (from shared schema):
 - Operators: Transport operator names (simple string array)
