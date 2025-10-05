@@ -245,8 +245,14 @@ export default function Reports() {
                       <FormItem>
                         <FormLabel>Kurs (opcjonalnie)</FormLabel>
                         <Select 
-                          onValueChange={(value) => field.onChange(Number(value))}
-                          value={field.value ? String(field.value) : undefined}
+                          onValueChange={(value) => {
+                            if (value === "none") {
+                              field.onChange(undefined);
+                            } else {
+                              field.onChange(Number(value));
+                            }
+                          }}
+                          value={field.value ? String(field.value) : "none"}
                         >
                           <FormControl>
                             <SelectTrigger data-testid="select-run">
@@ -254,7 +260,7 @@ export default function Reports() {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="">Brak - dotyczy całej trasy</SelectItem>
+                            <SelectItem value="none">Brak - dotyczy całej trasy</SelectItem>
                             {runs.map((run) => (
                               <SelectItem key={run} value={String(run)}>
                                 Kurs #{run}
