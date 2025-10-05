@@ -67,6 +67,10 @@ export const routeStopSchema = z.object({
 
 export type RouteStop = z.infer<typeof routeStopSchema>;
 
+// Forward declare report and track schemas for route
+const reportSchemaLazy = z.lazy(() => reportSchema);
+const trackSchemaLazy = z.lazy(() => trackSchema);
+
 // Route schema
 export const routeSchema = z.object({
   id: z.number(),
@@ -78,6 +82,8 @@ export const routeSchema = z.object({
   schedules: z.array(scheduleSchema).optional(),
   destinations: z.array(z.string()).optional(),
   run: z.number().optional(),
+  reports: z.array(z.any()).optional(), // Will be typed as Report[] after definition
+  tracks: z.array(z.any()).optional(), // Will be typed as Track[] after definition
   departure: z.object({
     name: z.string(),
     id: z.number(),
