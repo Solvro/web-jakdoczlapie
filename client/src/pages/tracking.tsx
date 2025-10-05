@@ -226,6 +226,61 @@ export default function Tracking() {
               )}
             </CardContent>
           </Card>
+
+          {tracks.length > 0 && (
+            <Card className="flex flex-col">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Activity className="w-5 h-5 text-primary" />
+                  Historia Śladów GPS
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="max-h-96 overflow-auto">
+                <div className="space-y-2">
+                  {tracks
+                    .filter(track => track.coordinates)
+                    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                    .map((track, index) => (
+                    <div
+                      key={`${track.id}-${index}`}
+                      className="p-3 border border-card-border rounded-md bg-card"
+                      data-testid={`track-item-${index}`}
+                    >
+                      <div className="flex items-start gap-2">
+                        <MapPin className="w-4 h-4 text-chart-3 mt-0.5 flex-shrink-0" />
+                        <div className="flex-1 min-w-0 space-y-1">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="text-xs font-medium text-foreground">
+                              Kurs #{track.run}
+                            </p>
+                            <Badge variant="outline" className="text-xs">
+                              {formatDistanceToNow(new Date(track.created_at), { addSuffix: true, locale: pl })}
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground font-mono">
+                            {track.coordinates!.latitude.toFixed(6)}, {track.coordinates!.longitude.toFixed(6)}
+                          </p>
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <Clock className="w-3 h-3" />
+                            <span>
+                              {new Date(track.created_at).toLocaleString('pl-PL', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                second: '2-digit'
+                              })}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </div>

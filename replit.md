@@ -69,7 +69,7 @@ Preferred communication style: Simple, everyday language.
    - **Route Details** (`/routes/:id`) - Displays schedule tables with stops and departure times only (no map or reports section)
 3. **Reports** (`/reports`) - Incident and delay reporting
 4. **Schedules** (`/schedules`) - Stop schedules and timetables
-5. **Tracking** (`/tracking`) - Real-time vehicle location monitoring with map display, last vehicle location with timestamp, and auto-refresh every 15 seconds
+5. **Tracking** (`/tracking`) - Real-time vehicle location monitoring with map display, last vehicle location with timestamp, GPS tracks history sidebar, and auto-refresh every 15 seconds
 
 **Data Models** (from shared schema):
 - Operators: Transport operator names (simple string array)
