@@ -3,6 +3,7 @@ import {
   Bus,
   AlertTriangle,
   MapPin,
+  Search,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import {
@@ -37,6 +38,11 @@ const menuItems = [
     title: "Śledzenie",
     url: "/tracking",
     icon: MapPin,
+  },
+  {
+    title: "Wyszukaj",
+    url: "/search",
+    icon: Search,
   },
 ];
 

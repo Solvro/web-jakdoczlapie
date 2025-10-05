@@ -13,6 +13,7 @@ import Routes from "@/pages/routes";
 import RouteDetails from "@/pages/route-details";
 import Reports from "@/pages/reports";
 import Tracking from "@/pages/tracking";
+import Search from "@/pages/search";
 
 function Router() {
   return (
@@ -22,6 +23,7 @@ function Router() {
       <Route path="/routes" component={Routes} />
       <Route path="/reports" component={Reports} />
       <Route path="/tracking" component={Tracking} />
+      <Route path="/search" component={Search} />
       <Route component={NotFound} />
     </Switch>
   );
