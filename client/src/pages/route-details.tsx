@@ -3,6 +3,7 @@ import { useRoute, useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Table,
   TableBody,
@@ -12,9 +13,15 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Bus, Train, MapPin, ArrowLeft, Clock } from "lucide-react";
-import { Route, Schedule, Condition } from "@shared/schema";
+import { Route, Schedule, Stop } from "@shared/schema";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { useMemo } from "react";
+
+interface ScheduleMatrix {
+  runs: number[];
+  stopSchedules: Map<number, Map<number, Schedule>>;
+}
 
 export default function RouteDetails() {
   const [, params] = useRoute("/routes/:id");
@@ -26,6 +33,30 @@ export default function RouteDetails() {
     enabled: routeId !== null,
   });
 
+  const scheduleMatrix = useMemo((): ScheduleMatrix | null => {
+    if (!route?.stops) return null;
+
+    const runSet = new Set<number>();
+    const stopSchedules = new Map<number, Map<number, Schedule>>();
+
+    route.stops.forEach(stop => {
+      const schedulesByRun = new Map<number, Schedule>();
+      
+      (stop.schedules || []).forEach(schedule => {
+        if (schedule.run) {
+          runSet.add(schedule.run);
+          schedulesByRun.set(schedule.run, schedule);
+        }
+      });
+      
+      stopSchedules.set(stop.id, schedulesByRun);
+    });
+
+    const runs = Array.from(runSet).sort((a, b) => a - b);
+
+    return { runs, stopSchedules };
+  }, [route?.stops]);
+
   const getTypeIcon = (type?: string) => {
     if (type === 'train') return Train;
     return Bus;
@@ -35,6 +66,11 @@ export default function RouteDetails() {
     if (type === 'train') return 'text-chart-2';
     if (type === 'tram') return 'text-chart-4';
     return 'text-primary';
+  };
+
+  const formatTime = (time: string) => {
+    // Convert HH:MM:SS to HH:MM for compact display
+    return time.substring(0, 5);
   };
 
   if (isLoading) {
@@ -126,104 +162,100 @@ export default function RouteDetails() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {route.stops && route.stops.length > 0 ? (
-            <div className="border border-card-border rounded-md overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-16">#</TableHead>
-                    <TableHead>Przystanek</TableHead>
-                    <TableHead className="w-32">Godzina</TableHead>
-                    <TableHead>Kierunek</TableHead>
-                    <TableHead>Run</TableHead>
-                    <TableHead>Warunki</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {route.stops.map((stop, stopIndex) => {
-                    const schedules = stop.schedules || [];
-                    
-                    if (schedules.length === 0) {
+          {route.stops && route.stops.length > 0 && scheduleMatrix ? (
+            <ScrollArea className="w-full">
+              <div className="border border-card-border rounded-md overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="sticky left-0 z-10 bg-card min-w-[250px] border-r border-card-border">
+                        Przystanek
+                      </TableHead>
+                      {scheduleMatrix.runs.map(run => (
+                        <TableHead 
+                          key={run} 
+                          className="text-center min-w-[120px]"
+                          data-testid={`header-run-${run}`}
+                        >
+                          <div className="font-semibold">Kurs #{run}</div>
+                        </TableHead>
+                      ))}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {route.stops.map((stop: Stop, stopIndex: number) => {
+                      const stopScheduleMap = scheduleMatrix.stopSchedules.get(stop.id);
+                      
                       return (
                         <TableRow key={stop.id} data-testid={`row-stop-${stop.id}`}>
-                          <TableCell className="text-muted-foreground font-mono text-sm">
-                            {stopIndex + 1}
-                          </TableCell>
-                          <TableCell className="font-medium">
-                            <div className="flex items-center gap-2">
-                              <MapPin className="w-4 h-4 text-muted-foreground" />
-                              <div>
-                                <div>{stop.name}</div>
+                          <TableCell className="sticky left-0 z-10 bg-card border-r border-card-border">
+                            <div className="flex items-start gap-2">
+                              <span className="text-muted-foreground font-mono text-sm flex-shrink-0 mt-0.5">
+                                {stopIndex + 1}.
+                              </span>
+                              <div className="flex-1 min-w-0">
+                                <div className="font-medium text-sm leading-tight mb-1">
+                                  {stop.name}
+                                </div>
                                 {stop.type && (
-                                  <Badge variant="outline" className="capitalize text-xs mt-1">
+                                  <Badge variant="outline" className="capitalize text-xs">
                                     {stop.type}
                                   </Badge>
                                 )}
                               </div>
                             </div>
                           </TableCell>
-                          <TableCell colSpan={4} className="text-muted-foreground text-sm">
-                            Brak rozkładów
-                          </TableCell>
+                          {scheduleMatrix.runs.map(run => {
+                            const schedule = stopScheduleMap?.get(run);
+                            
+                            return (
+                              <TableCell 
+                                key={run} 
+                                className="text-center align-top"
+                                data-testid={`cell-stop-${stop.id}-run-${run}`}
+                              >
+                                {schedule ? (
+                                  <div className="py-1">
+                                    <div className="font-mono font-semibold text-sm mb-1">
+                                      {formatTime(schedule.time)}
+                                    </div>
+                                    {schedule.destination && (
+                                      <div className="text-xs text-muted-foreground mb-1">
+                                        → {schedule.destination}
+                                      </div>
+                                    )}
+                                    {schedule.conditions && schedule.conditions.length > 0 && (
+                                      <div className="flex gap-1 flex-wrap justify-center">
+                                        {schedule.conditions.map(condition => (
+                                          <Badge 
+                                            key={condition.id} 
+                                            variant="secondary" 
+                                            className="text-xs px-1 py-0"
+                                          >
+                                            {condition.name}
+                                          </Badge>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <span className="text-muted-foreground text-sm">—</span>
+                                )}
+                              </TableCell>
+                            );
+                          })}
                         </TableRow>
                       );
-                    }
-
-                    return schedules.map((schedule: Schedule, idx: number) => (
-                      <TableRow key={`${stop.id}-${schedule.id}`} data-testid={`row-schedule-${schedule.id}`}>
-                        {idx === 0 && (
-                          <>
-                            <TableCell rowSpan={schedules.length} className="text-muted-foreground font-mono text-sm align-top">
-                              {stopIndex + 1}
-                            </TableCell>
-                            <TableCell rowSpan={schedules.length} className="font-medium align-top">
-                              <div className="flex items-center gap-2">
-                                <MapPin className="w-4 h-4 text-muted-foreground" />
-                                <div>
-                                  <div>{stop.name}</div>
-                                  {stop.type && (
-                                    <Badge variant="outline" className="capitalize text-xs mt-1">
-                                      {stop.type}
-                                    </Badge>
-                                  )}
-                                  {stop.coordinates && (
-                                    <div className="text-xs text-muted-foreground font-mono mt-1">
-                                      {stop.coordinates.latitude.toFixed(4)}, {stop.coordinates.longitude.toFixed(4)}
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            </TableCell>
-                          </>
-                        )}
-                        <TableCell className="font-mono font-medium">
-                          {schedule.time}
-                        </TableCell>
-                        <TableCell className="text-foreground">
-                          {schedule.destination || '-'}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground font-mono text-sm">
-                          #{schedule.run || '-'}
-                        </TableCell>
-                        <TableCell>
-                          {schedule.conditions && schedule.conditions.length > 0 ? (
-                            <div className="flex gap-1 flex-wrap">
-                              {schedule.conditions.map((condition: Condition) => (
-                                <Badge key={condition.id} variant="secondary" className="text-xs">
-                                  {condition.name}
-                                </Badge>
-                              ))}
-                            </div>
-                          ) : (
-                            <span className="text-muted-foreground text-sm">-</span>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ));
-                  })}
-                </TableBody>
-              </Table>
-            </div>
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+              {scheduleMatrix.runs.length > 5 && (
+                <p className="text-xs text-muted-foreground mt-2 text-center">
+                  Przewiń w prawo aby zobaczyć więcej kursów →
+                </p>
+              )}
+            </ScrollArea>
           ) : (
             <div className="text-center py-8 bg-muted/50 rounded-md">
               <Clock className="w-8 h-8 text-muted-foreground mx-auto mb-2 opacity-50" />
