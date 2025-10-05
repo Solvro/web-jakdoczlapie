@@ -2,9 +2,6 @@ import { createContext, useContext, useState, useEffect, ReactNode } from "react
 import type { Operator } from "@shared/schema";
 
 interface OperatorContextType {
-  selectedOperators: Operator[];
-  setSelectedOperators: (operators: Operator[]) => void;
-  toggleOperator: (operator: Operator) => void;
   selectedOperator: Operator | null;
   setSelectedOperator: (operator: Operator | null) => void;
 }
@@ -12,23 +9,10 @@ interface OperatorContextType {
 const OperatorContext = createContext<OperatorContextType | undefined>(undefined);
 
 export function OperatorProvider({ children }: { children: ReactNode }) {
-  const [selectedOperators, setSelectedOperators] = useState<Operator[]>(() => {
-    const stored = localStorage.getItem("selectedOperators");
-    return stored ? JSON.parse(stored) : ["LUZ"];
-  });
-
   const [selectedOperator, setSelectedOperator] = useState<Operator | null>(() => {
     const stored = localStorage.getItem("selectedOperator");
-    return stored || "LUZ";
+    return stored || "LUZ"; // Default to LUZ operator
   });
-
-  useEffect(() => {
-    if (selectedOperators.length > 0) {
-      localStorage.setItem("selectedOperators", JSON.stringify(selectedOperators));
-    } else {
-      localStorage.removeItem("selectedOperators");
-    }
-  }, [selectedOperators]);
 
   useEffect(() => {
     if (selectedOperator) {
@@ -38,25 +22,8 @@ export function OperatorProvider({ children }: { children: ReactNode }) {
     }
   }, [selectedOperator]);
 
-  const toggleOperator = (operator: Operator) => {
-    setSelectedOperators(prev => {
-      if (prev.includes(operator)) {
-        const filtered = prev.filter(op => op !== operator);
-        return filtered.length > 0 ? filtered : prev;
-      } else {
-        return [...prev, operator];
-      }
-    });
-  };
-
   return (
-    <OperatorContext.Provider value={{ 
-      selectedOperators, 
-      setSelectedOperators, 
-      toggleOperator,
-      selectedOperator,
-      setSelectedOperator
-    }}>
+    <OperatorContext.Provider value={{ selectedOperator, setSelectedOperator }}>
       {children}
     </OperatorContext.Provider>
   );

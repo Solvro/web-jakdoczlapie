@@ -10,17 +10,14 @@ import { pl } from "date-fns/locale";
 import { useOperator } from "@/contexts/operator-context";
 
 export default function Dashboard() {
-  const { selectedOperators } = useOperator();
+  const { selectedOperator } = useOperator();
 
-  const routeQueries = selectedOperators.map(operator => 
-    useQuery<Route[]>({
-      queryKey: [api.operators.getData(operator)],
-      enabled: !!operator,
-    })
-  );
+  const { data: routesData, isLoading: routesLoading } = useQuery<Route[]>({
+    queryKey: [api.operators.getData(selectedOperator!)],
+    enabled: !!selectedOperator,
+  });
 
-  const routes = routeQueries.flatMap(q => q.data || []);
-  const routesLoading = routeQueries.some(q => q.isLoading);
+  const routes = routesData || [];
   const reports = routes.flatMap(route => route.reports || []);
 
   const totalRoutes = routes.length || 0;
