@@ -316,9 +316,11 @@ export default function Search() {
                       <Badge variant="outline">
                         {option.transfers} {option.transfers === 1 ? 'przesiadka' : 'przesiadek'}
                       </Badge>
-                      <span className="text-xs text-muted-foreground">
-                        {(option.totalDistance / 1000).toFixed(1)} km
-                      </span>
+                      {option.totalDistance !== undefined && (
+                        <span className="text-xs text-muted-foreground">
+                          {(option.totalDistance / 1000).toFixed(1)} km
+                        </span>
+                      )}
                     </div>
                   </div>
                   
