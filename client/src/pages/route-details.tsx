@@ -171,7 +171,7 @@ export default function RouteDetails() {
         </CardHeader>
         <CardContent>
           <div className="border border-card-border rounded-md overflow-hidden">
-            <ScrollArea className="w-full max-h-[600px]">
+            <ScrollArea className="w-full">
               <Table>
                 <TableHeader>
                   <TableRow>
