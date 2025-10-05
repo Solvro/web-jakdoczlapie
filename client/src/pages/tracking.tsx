@@ -135,6 +135,7 @@ export default function Tracking() {
                 <RouteMap
                   stops={selectedRoute.stops || []}
                   tracks={tracks}
+                  reports={reports}
                   className="w-full h-full"
                 />
               ) : (
@@ -197,67 +198,6 @@ export default function Tracking() {
                 <div className="text-center py-4">
                   <Bus className="w-8 h-8 text-muted-foreground mx-auto mb-2 opacity-50" />
                   <p className="text-xs text-muted-foreground">Brak tras</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card className="flex flex-col">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <AlertCircle className="w-5 h-5 text-primary" />
-                Raporty
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="max-h-80 overflow-auto">
-              {reports.length > 0 ? (
-                <div className="space-y-3">
-                  {reports.map((report) => (
-                    <div
-                      key={report.id}
-                      className="p-3 border border-card-border rounded-md bg-card"
-                      data-testid={`card-report-${report.id}`}
-                    >
-                      <div className="flex items-start gap-2 mb-2">
-                        {report.type && (
-                          <Badge variant="outline" className="text-xs">
-                            {report.type}
-                          </Badge>
-                        )}
-                        {report.run && (
-                          <Badge variant="secondary" className="text-xs">
-                            Kurs #{report.run}
-                          </Badge>
-                        )}
-                      </div>
-                      {report.description && (
-                        <p className="text-sm text-foreground mb-2">{report.description}</p>
-                      )}
-                      {report.coordinates && (
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-                          <MapPin className="w-3 h-3" />
-                          <span className="font-mono">
-                            {report.coordinates.latitude.toFixed(4)}, {report.coordinates.longitude.toFixed(4)}
-                          </span>
-                        </div>
-                      )}
-                      {report.created_at && (
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <Clock className="w-3 h-3" />
-                          <span>{formatDistanceToNow(new Date(report.created_at), { addSuffix: true, locale: pl })}</span>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <Info className="w-12 h-12 text-muted-foreground mx-auto mb-3 opacity-50" />
-                  <p className="text-sm text-muted-foreground">
-                    {selectedRoute && selectedRun 
-                      ? "Brak raportów dla wybranego przebiegu" 
-                      : "Wybierz trasę i przebieg, aby zobaczyć raporty"}
-                  </p>
                 </div>
               )}
             </CardContent>
