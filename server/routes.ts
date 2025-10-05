@@ -2,8 +2,10 @@ import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import OpenAI from "openai";
 import multer from "multer";
-// @ts-ignore - pdf-parse has issues with TS imports
-import pdfParse from "pdf-parse";
+import { createRequire } from "module";
+
+const require = createRequire(import.meta.url);
+const pdfParse = require("pdf-parse");
 
 const API_BASE_URL = 'https://jak-doczlapie-hackyeah.b.solvro.pl/api/v1';
 
