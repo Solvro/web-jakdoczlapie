@@ -5,6 +5,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
+import { OperatorProvider } from "@/contexts/operator-context";
+import { OperatorSelector } from "@/components/operator-selector";
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
 import Routes from "@/pages/routes";
@@ -34,25 +36,25 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <SidebarProvider style={style as React.CSSProperties}>
-          <div className="flex h-screen w-full">
-            <AppSidebar />
-            <div className="flex flex-col flex-1 overflow-hidden">
-              <header className="flex items-center justify-between p-4 border-b border-border bg-background">
-                <SidebarTrigger data-testid="button-sidebar-toggle" />
-                <div className="flex items-center gap-3">
-                  <div className="text-sm text-muted-foreground">
-                    Panel Operatora
+        <OperatorProvider>
+          <SidebarProvider style={style as React.CSSProperties}>
+            <div className="flex h-screen w-full">
+              <AppSidebar />
+              <div className="flex flex-col flex-1 overflow-hidden">
+                <header className="flex items-center justify-between p-4 border-b border-border bg-background">
+                  <SidebarTrigger data-testid="button-sidebar-toggle" />
+                  <div className="flex items-center gap-3">
+                    <OperatorSelector />
                   </div>
-                </div>
-              </header>
-              <main className="flex-1 overflow-auto bg-background">
-                <Router />
-              </main>
+                </header>
+                <main className="flex-1 overflow-auto bg-background">
+                  <Router />
+                </main>
+              </div>
             </div>
-          </div>
-        </SidebarProvider>
-        <Toaster />
+          </SidebarProvider>
+          <Toaster />
+        </OperatorProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );
