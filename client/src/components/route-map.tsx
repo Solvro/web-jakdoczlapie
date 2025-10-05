@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Stop } from '@shared/schema';
+import { Stop, Track } from '@shared/schema';
 
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -12,6 +12,7 @@ L.Icon.Default.mergeOptions({
 
 interface RouteMapProps {
   stops?: Stop[];
+  tracks?: Track[];
   selectedCoordinates?: { latitude: number; longitude: number } | null;
   onLocationSelect?: (latitude: number, longitude: number) => void;
   center?: [number, number];
@@ -21,6 +22,7 @@ interface RouteMapProps {
 
 export function RouteMap({
   stops = [],
+  tracks = [],
   selectedCoordinates,
   onLocationSelect,
   center = [50.5, 18.0],
@@ -31,6 +33,8 @@ export function RouteMap({
   const markersRef = useRef<L.Marker[]>([]);
   const selectedMarkerRef = useRef<L.Marker | null>(null);
   const polylineRef = useRef<L.Polyline | null>(null);
+  const trackPolylineRef = useRef<L.Polyline | null>(null);
+  const trackMarkersRef = useRef<L.Marker[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -107,6 +111,75 @@ export function RouteMap({
       }
     }
   }, [stops]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    trackMarkersRef.current.forEach(marker => marker.remove());
+    trackMarkersRef.current = [];
+
+    if (trackPolylineRef.current) {
+      trackPolylineRef.current.remove();
+      trackPolylineRef.current = null;
+    }
+
+    if (tracks.length > 0) {
+      const trackCoordinates: [number, number][] = [];
+
+      tracks
+        .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+        .forEach((track, index) => {
+          if (track.coordinates) {
+            const lat = track.coordinates.latitude;
+            const lng = track.coordinates.longitude;
+            trackCoordinates.push([lat, lng]);
+
+            if (index === tracks.length - 1) {
+              const marker = L.marker([lat, lng], {
+                icon: L.divIcon({
+                  className: 'custom-track-marker',
+                  html: `<div style="background: #10b981; width: 14px; height: 14px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 6px rgba(16, 185, 129, 0.5);"></div>`,
+                  iconSize: [14, 14],
+                  iconAnchor: [7, 7],
+                }),
+              }).addTo(map);
+
+              marker.bindPopup(`<b>Ostatnia pozycja</b><br/><small>${new Date(track.created_at).toLocaleString('pl-PL')}</small>`);
+              trackMarkersRef.current.push(marker);
+            }
+          }
+        });
+
+      if (trackCoordinates.length > 1) {
+        trackPolylineRef.current = L.polyline(trackCoordinates, {
+          color: '#10b981',
+          weight: 4,
+          opacity: 0.8,
+        }).addTo(map);
+
+        const allBounds: L.LatLngBounds[] = [];
+        if (polylineRef.current) {
+          allBounds.push(polylineRef.current.getBounds());
+        }
+        if (trackPolylineRef.current) {
+          allBounds.push(trackPolylineRef.current.getBounds());
+        }
+
+        if (allBounds.length > 0) {
+          const combinedBounds = allBounds[0];
+          allBounds.slice(1).forEach(bounds => combinedBounds.extend(bounds));
+          map.fitBounds(combinedBounds, {
+            padding: [50, 50],
+          });
+        }
+      } else if (trackCoordinates.length === 1) {
+        if (stops.length === 0) {
+          map.setView(trackCoordinates[0], 14);
+        }
+      }
+    }
+  }, [tracks, stops]);
 
   useEffect(() => {
     if (!mapRef.current) return;

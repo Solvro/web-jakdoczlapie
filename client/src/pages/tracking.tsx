@@ -1,14 +1,19 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Navigation, Clock, Bus, Activity } from "lucide-react";
-import { Route } from "@shared/schema";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { MapPin, Navigation, Clock, Bus, Activity, AlertCircle, Info } from "lucide-react";
+import { Route, Track, Report } from "@shared/schema";
 import { api } from "@/lib/api";
 import { useState, useEffect } from "react";
 import { useOperator } from "@/contexts/operator-context";
+import { RouteMap } from "@/components/route-map";
+import { formatDistanceToNow } from "date-fns";
+import { pl } from "date-fns/locale";
 
 export default function Tracking() {
   const [selectedRoute, setSelectedRoute] = useState<Route | null>(null);
+  const [selectedRun, setSelectedRun] = useState<number | null>(null);
   const { selectedOperator } = useOperator();
   
   const { data: routes, isLoading } = useQuery<Route[]>({
@@ -16,20 +21,47 @@ export default function Tracking() {
     enabled: !!selectedOperator,
   });
 
-  const { data: trackingData, refetch: refetchTracking } = useQuery({
-    queryKey: ['/api/v1/tracking', selectedRoute?.id],
+  const { data: allTracks = [] } = useQuery<Track[]>({
+    queryKey: ['/api/v1/all-tracks', selectedRoute?.id],
     queryFn: async () => {
-      if (!selectedRoute?.id) return null;
+      if (!selectedRoute?.id) return [];
       try {
         const response = await fetch(`/api/v1/routes/${selectedRoute.id}/tracks`);
-        if (!response.ok) return null;
+        if (!response.ok) return [];
         return await response.json();
       } catch {
-        return null;
+        return [];
       }
     },
     enabled: !!selectedRoute?.id,
     refetchInterval: 15000,
+  });
+
+  const availableRuns = Array.from(
+    new Set(allTracks.map(track => track.run).filter(run => run !== undefined))
+  ).sort((a, b) => a - b);
+
+  const tracks = selectedRun 
+    ? allTracks.filter(track => track.run === selectedRun)
+    : allTracks;
+
+  const { data: reports = [] } = useQuery<Report[]>({
+    queryKey: ['/api/v1/reports', selectedRoute?.id, selectedRun],
+    queryFn: async () => {
+      if (!selectedRoute?.id) return [];
+      try {
+        const url = selectedRun 
+          ? `/api/v1/routes/${selectedRoute.id}/reports?run=${selectedRun}`
+          : `/api/v1/routes/${selectedRoute.id}/reports`;
+        const response = await fetch(url);
+        if (!response.ok) return [];
+        return await response.json();
+      } catch {
+        return [];
+      }
+    },
+    enabled: !!selectedRoute?.id,
+    refetchInterval: 30000,
   });
 
   useEffect(() => {
@@ -37,6 +69,12 @@ export default function Tracking() {
       setSelectedRoute(routes[0]);
     }
   }, [routes, selectedRoute]);
+
+  useEffect(() => {
+    if (availableRuns.length > 0 && !selectedRun) {
+      setSelectedRun(availableRuns[availableRuns.length - 1]);
+    }
+  }, [availableRuns, selectedRun]);
 
   return (
     <div className="p-6 space-y-6">
@@ -46,116 +84,182 @@ export default function Tracking() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-2 space-y-4">
+          {selectedRoute && availableRuns.length > 0 && (
+            <Card className="p-4">
+              <div className="flex items-center gap-4 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <Bus className="w-5 h-5 text-primary" />
+                  <div>
+                    <p className="font-semibold text-foreground">{selectedRoute.name}</p>
+                    <p className="text-xs text-muted-foreground">{selectedRoute.operator}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 flex-1">
+                  <label className="text-sm text-muted-foreground">Przebieg:</label>
+                  <Select 
+                    value={selectedRun?.toString() || ""} 
+                    onValueChange={(value) => setSelectedRun(Number(value))}
+                  >
+                    <SelectTrigger className="w-32" data-testid="select-run">
+                      <SelectValue placeholder="Wybierz..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableRuns.map((run) => (
+                        <SelectItem key={run} value={run.toString()}>
+                          Kurs #{run}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {tracks.length > 0 && (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Activity className="w-4 h-4 text-chart-3" />
+                    <span>{tracks.length} śladów GPS - odświeżanie co 15s</span>
+                  </div>
+                )}
+              </div>
+            </Card>
+          )}
+          
           <Card className="h-[600px] flex flex-col">
             <CardHeader className="border-b border-card-border">
               <CardTitle className="flex items-center gap-2">
                 <MapPin className="w-5 h-5 text-primary" />
-                Widok Mapy
+                Mapa Śledzenia
               </CardTitle>
             </CardHeader>
             <CardContent className="flex-1 p-0">
-              <div className="w-full h-full bg-muted rounded-b-lg flex items-center justify-center relative">
-                <div className="text-center p-6">
-                  <Activity className="w-16 h-16 text-primary mx-auto mb-4 opacity-70 animate-pulse" />
-                  <h3 className="text-lg font-semibold text-foreground mb-2">Śledzenie w Czasie Rzeczywistym</h3>
-                  <p className="text-sm text-muted-foreground max-w-md mb-4">
-                    Mapa śledzeń wyświetli pozycje pojazdów na trasach. Przygotowywana jest integracja z danymi GPS.
-                  </p>
-                  {selectedRoute && (
-                    <div className="mt-6 p-4 bg-card border border-card-border rounded-md inline-block">
-                      <div className="flex items-center gap-3 mb-3">
-                        <Bus className="w-8 h-8 text-primary" />
-                        <div className="text-left">
-                          <p className="font-semibold text-foreground">{selectedRoute.name}</p>
-                          <p className="text-sm text-muted-foreground">{selectedRoute.operator}</p>
-                          {selectedRoute.run && (
-                            <p className="text-xs text-muted-foreground font-mono mt-1">Run #{selectedRoute.run}</p>
-                          )}
-                        </div>
-                      </div>
-                      {trackingData && (
-                        <div className="text-xs text-muted-foreground border-t border-card-border pt-3 mt-3">
-                          <div className="flex items-center gap-2">
-                            <Activity className="w-4 h-4 text-chart-3" />
-                            <span>Dane śledzenia dostępne - odświeżanie co 15s</span>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
+              {selectedRoute && selectedRun && tracks.length > 0 ? (
+                <RouteMap
+                  stops={selectedRoute.stops || []}
+                  tracks={tracks}
+                  className="w-full h-full"
+                />
+              ) : (
+                <div className="w-full h-full bg-muted rounded-b-lg flex items-center justify-center">
+                  <div className="text-center p-6">
+                    <Activity className="w-16 h-16 text-primary mx-auto mb-4 opacity-70" />
+                    <h3 className="text-lg font-semibold text-foreground mb-2">Brak Danych Śledzenia</h3>
+                    <p className="text-sm text-muted-foreground max-w-md">
+                      {!selectedRoute ? "Wybierz trasę z listy po prawej stronie" : 
+                       !selectedRun ? "Wybierz przebieg z rozwijanej listy" :
+                       "Brak dostępnych śladów GPS dla wybranego przebiegu"}
+                    </p>
+                  </div>
                 </div>
-              </div>
+              )}
             </CardContent>
           </Card>
         </div>
 
-        <div>
-          <Card className="h-[600px] flex flex-col">
+        <div className="space-y-4">
+          <Card className="flex flex-col">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Navigation className="w-5 h-5 text-primary" />
-                Aktywne Pojazdy
+                Trasy
               </CardTitle>
             </CardHeader>
-            <CardContent className="flex-1 overflow-auto">
+            <CardContent className="max-h-64 overflow-auto">
               {isLoading ? (
-                <div className="space-y-3">
-                  {[1, 2, 3, 4].map((i) => (
-                    <div key={i} className="h-24 bg-muted animate-pulse rounded-md" />
+                <div className="space-y-2">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="h-16 bg-muted animate-pulse rounded-md" />
                   ))}
                 </div>
               ) : routes && routes.length > 0 ? (
-                <div className="space-y-3">
-                  {routes.slice(0, 8).map((route) => (
+                <div className="space-y-2">
+                  {routes.slice(0, 5).map((route) => (
                     <div
                       key={route.id}
-                      onClick={() => setSelectedRoute(route)}
-                      className={`p-3 border rounded-md hover-elevate transition-all cursor-pointer ${
+                      onClick={() => {
+                        setSelectedRoute(route);
+                        setSelectedRun(null);
+                      }}
+                      className={`p-2 border rounded-md hover-elevate transition-all cursor-pointer ${
                         selectedRoute?.id === route.id 
                           ? 'bg-primary/10 border-primary' 
                           : 'bg-card border-card-border'
                       }`}
-                      data-testid={`card-active-vehicle-${route.id}`}
+                      data-testid={`card-route-${route.id}`}
                     >
-                      <div className="flex items-start gap-3">
-                        <div className={`w-10 h-10 rounded-md flex items-center justify-center flex-shrink-0 ${
-                          selectedRoute?.id === route.id 
-                            ? 'bg-primary/20' 
-                            : 'bg-primary/10'
-                        }`}>
-                          <Bus className={`w-5 h-5 ${
-                            selectedRoute?.id === route.id 
-                              ? 'text-primary' 
-                              : 'text-primary'
-                          }`} />
-                        </div>
+                      <div className="flex items-center gap-2">
+                        <Bus className="w-4 h-4 text-primary" />
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <p className="font-medium text-foreground text-sm line-clamp-1">{route.name}</p>
-                            <Badge variant="outline" className="text-xs capitalize">
-                              {route.type || 'bus'}
-                            </Badge>
-                          </div>
-                          <p className="text-xs text-muted-foreground mb-2">{route.operator}</p>
-                          {route.run && (
-                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                              <Clock className="w-3 h-3" />
-                              <span className="font-mono">Run #{route.run}</span>
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex-shrink-0">
-                          <div className="w-2 h-2 bg-chart-3 rounded-full animate-pulse" />
+                          <p className="font-medium text-foreground text-sm line-clamp-1">{route.name}</p>
+                          <p className="text-xs text-muted-foreground">{route.operator}</p>
                         </div>
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
+                <div className="text-center py-4">
+                  <Bus className="w-8 h-8 text-muted-foreground mx-auto mb-2 opacity-50" />
+                  <p className="text-xs text-muted-foreground">Brak tras</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="flex flex-col">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <AlertCircle className="w-5 h-5 text-primary" />
+                Raporty
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="max-h-80 overflow-auto">
+              {reports.length > 0 ? (
+                <div className="space-y-3">
+                  {reports.map((report) => (
+                    <div
+                      key={report.id}
+                      className="p-3 border border-card-border rounded-md bg-card"
+                      data-testid={`card-report-${report.id}`}
+                    >
+                      <div className="flex items-start gap-2 mb-2">
+                        {report.type && (
+                          <Badge variant="outline" className="text-xs">
+                            {report.type}
+                          </Badge>
+                        )}
+                        {report.run && (
+                          <Badge variant="secondary" className="text-xs">
+                            Kurs #{report.run}
+                          </Badge>
+                        )}
+                      </div>
+                      {report.description && (
+                        <p className="text-sm text-foreground mb-2">{report.description}</p>
+                      )}
+                      {report.coordinates && (
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                          <MapPin className="w-3 h-3" />
+                          <span className="font-mono">
+                            {report.coordinates.latitude.toFixed(4)}, {report.coordinates.longitude.toFixed(4)}
+                          </span>
+                        </div>
+                      )}
+                      {report.created_at && (
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <Clock className="w-3 h-3" />
+                          <span>{formatDistanceToNow(new Date(report.created_at), { addSuffix: true, locale: pl })}</span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
                 <div className="text-center py-8">
-                  <Bus className="w-12 h-12 text-muted-foreground mx-auto mb-3 opacity-50" />
-                  <p className="text-sm text-muted-foreground">Brak aktywnych pojazdów</p>
+                  <Info className="w-12 h-12 text-muted-foreground mx-auto mb-3 opacity-50" />
+                  <p className="text-sm text-muted-foreground">
+                    {selectedRoute && selectedRun 
+                      ? "Brak raportów dla wybranego przebiegu" 
+                      : "Wybierz trasę i przebieg, aby zobaczyć raporty"}
+                  </p>
                 </div>
               )}
             </CardContent>
