@@ -2,10 +2,13 @@ import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Search as SearchIcon, Navigation2, ArrowRight, Clock, Bus, Info } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { MapPin, Search as SearchIcon, Navigation2, ArrowRight, Clock, Bus, Info, ChevronDown, ChevronUp, AlertTriangle } from "lucide-react";
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useQuery } from "@tanstack/react-query";
+import type { RouteSearchResult, Route } from "@shared/schema";
+import { cn } from "@/lib/utils";
 
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -20,15 +23,209 @@ interface Point {
   label: string;
 }
 
-interface JourneyOption {
-  routes: Array<{
-    id: number;
-    name: string;
-    operator: string;
-    type: string;
-  }>;
-  totalDistance: number;
-  transfers: number;
+function formatTime(time: string) {
+  return time.substring(0, 5);
+}
+
+function addMinutesToTime(time: string, minutes: number): string {
+  const [hours, mins] = time.split(':').map(Number);
+  const totalMinutes = hours * 60 + mins + minutes;
+  const newHours = Math.floor(totalMinutes / 60) % 24;
+  const newMins = totalMinutes % 60;
+  return `${String(newHours).padStart(2, '0')}:${String(newMins).padStart(2, '0')}`;
+}
+
+function JourneyOptionCard({ option, index }: { option: RouteSearchResult; index: number }) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+      <div
+        className="p-4 border border-card-border rounded-md bg-card"
+        data-testid={`journey-option-${index}`}
+      >
+        <div className="space-y-3">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1 space-y-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <Bus className="w-5 h-5 text-primary" />
+                <span className="text-sm font-semibold text-foreground">
+                  Opcja {index + 1}
+                </span>
+                <Badge variant="outline">
+                  {option.transfers} {option.transfers === 1 ? 'przesiadka' : 'przesiadek'}
+                </Badge>
+                <Badge variant="secondary" className="gap-1">
+                  <Clock className="w-3 h-3" />
+                  {option.travel_time} min
+                </Badge>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <div className="w-2 h-2 rounded-full bg-chart-3" />
+                    <span>Odjazd</span>
+                  </div>
+                  <p className="text-sm font-medium text-foreground">{option.departure.name}</p>
+                  <p className="text-lg font-bold text-foreground font-mono">
+                    {formatTime(option.departure.time)}
+                  </p>
+                </div>
+
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <div className="w-2 h-2 rounded-full bg-destructive" />
+                    <span>Przyjazd</span>
+                  </div>
+                  <p className="text-sm font-medium text-foreground">{option.arrival.name}</p>
+                  <p className="text-lg font-bold text-foreground font-mono">
+                    {formatTime(option.arrival.time)}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <CollapsibleTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                className="gap-1"
+                data-testid={`button-toggle-details-${index}`}
+              >
+                {isOpen ? (
+                  <>
+                    <ChevronUp className="w-4 h-4" />
+                    Ukryj szczegóły
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown className="w-4 h-4" />
+                    Zobacz szczegóły
+                  </>
+                )}
+              </Button>
+            </CollapsibleTrigger>
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            {option.routes.map((route: Route, routeIndex: number) => (
+              <div key={routeIndex} className="flex items-center gap-2">
+                {routeIndex > 0 && (
+                  <ArrowRight className="w-4 h-4 text-muted-foreground" />
+                )}
+                <div className="p-2 bg-primary/10 border border-primary/20 rounded-md">
+                  <p className="text-xs font-semibold text-foreground">{route.name}</p>
+                  <p className="text-xs text-muted-foreground">{route.operator}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <CollapsibleContent className="space-y-4 pt-3">
+            {option.routes.map((route: Route, routeIndex: number) => (
+              <RouteDetailsSection key={routeIndex} route={route} routeIndex={routeIndex} />
+            ))}
+          </CollapsibleContent>
+        </div>
+      </div>
+    </Collapsible>
+  );
+}
+
+function RouteDetailsSection({ route, routeIndex }: { route: Route; routeIndex: number }) {
+  const delayReport = route.reports?.find(r => r.type === 'delay');
+  const delayMinutes = delayReport ? 5 : 0; // Assume 5 minutes delay if delay report exists
+
+  return (
+    <div className="border-t border-card-border pt-3" data-testid={`route-details-${routeIndex}`}>
+      <div className="flex items-center gap-2 mb-3">
+        <Navigation2 className="w-4 h-4 text-primary" />
+        <span className="font-semibold text-sm text-foreground">
+          Trasa {routeIndex + 1}: {route.name}
+        </span>
+        {route.run && (
+          <Badge variant="outline" className="text-xs">
+            Kurs #{route.run}
+          </Badge>
+        )}
+        {delayReport && (
+          <Badge variant="destructive" className="gap-1 text-xs">
+            <AlertTriangle className="w-3 h-3" />
+            Opóźnienie ~{delayMinutes} min
+          </Badge>
+        )}
+      </div>
+
+      {route.departure && route.arrival && (
+        <div className="space-y-2 mb-3">
+          <div className="flex items-center justify-between text-sm p-2 bg-card rounded-md border border-card-border">
+            <div>
+              <p className="text-xs text-muted-foreground mb-1">Początek</p>
+              <p className="font-medium text-foreground">{route.departure.name}</p>
+            </div>
+            <p className={cn(
+              "font-mono font-bold",
+              delayMinutes > 0 ? "text-destructive" : "text-foreground"
+            )}>
+              {delayMinutes > 0 
+                ? addMinutesToTime(route.departure.time, delayMinutes)
+                : formatTime(route.departure.time)
+              }
+            </p>
+          </div>
+
+          <div className="flex items-center justify-between text-sm p-2 bg-card rounded-md border border-card-border">
+            <div>
+              <p className="text-xs text-muted-foreground mb-1">Koniec</p>
+              <p className="font-medium text-foreground">{route.arrival.name}</p>
+            </div>
+            <p className={cn(
+              "font-mono font-bold",
+              delayMinutes > 0 ? "text-destructive" : "text-foreground"
+            )}>
+              {delayMinutes > 0 
+                ? addMinutesToTime(route.arrival.time, delayMinutes)
+                : formatTime(route.arrival.time)
+              }
+            </p>
+          </div>
+        </div>
+      )}
+
+      {route.stops && route.stops.length > 0 && (
+        <div className="space-y-1">
+          <p className="text-xs font-medium text-muted-foreground mb-2">Wszystkie przystanki:</p>
+          {route.stops.map((stop, stopIndex) => {
+            const schedule = stop.schedules?.[0];
+            return (
+              <div 
+                key={stopIndex} 
+                className="flex items-center justify-between text-xs p-2 hover-elevate rounded-md"
+                data-testid={`stop-${stopIndex}`}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground font-mono">{stopIndex + 1}.</span>
+                  <span className="text-foreground">{stop.name}</span>
+                </div>
+                {schedule && (
+                  <span className={cn(
+                    "font-mono font-semibold",
+                    delayMinutes > 0 ? "text-destructive" : "text-muted-foreground"
+                  )}>
+                    {delayMinutes > 0 
+                      ? addMinutesToTime(schedule.time, delayMinutes)
+                      : formatTime(schedule.time)
+                    }
+                  </span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function Search() {
@@ -131,7 +328,7 @@ export default function Search() {
     }
   }, [endPoint, startPoint]);
 
-  const { data: routes, isLoading, refetch } = useQuery<JourneyOption[]>({
+  const { data: routes, isLoading, refetch } = useQuery<RouteSearchResult[]>({
     queryKey: ['/api/v1/routes', startPoint, endPoint, searchRadius],
     queryFn: async () => {
       if (!startPoint || !endPoint) return [];
@@ -298,46 +495,9 @@ export default function Search() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
+            <div className="space-y-4">
               {routes.map((option, index) => (
-                <div
-                  key={index}
-                  className="p-4 border border-card-border rounded-md bg-card hover-elevate"
-                  data-testid={`journey-option-${index}`}
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <Bus className="w-5 h-5 text-primary" />
-                      <span className="text-sm font-semibold text-foreground">
-                        Opcja {index + 1}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <Badge variant="outline">
-                        {option.transfers} {option.transfers === 1 ? 'przesiadka' : 'przesiadek'}
-                      </Badge>
-                      {option.totalDistance !== undefined && (
-                        <span className="text-xs text-muted-foreground">
-                          {(option.totalDistance / 1000).toFixed(1)} km
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-2 flex-wrap">
-                    {option.routes.map((route, routeIndex) => (
-                      <div key={routeIndex} className="flex items-center gap-2">
-                        {routeIndex > 0 && (
-                          <ArrowRight className="w-4 h-4 text-muted-foreground" />
-                        )}
-                        <div className="p-2 bg-primary/10 border border-primary/20 rounded-md">
-                          <p className="text-xs font-semibold text-foreground">{route.name}</p>
-                          <p className="text-xs text-muted-foreground">{route.operator}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                <JourneyOptionCard key={index} option={option} index={index} />
               ))}
             </div>
           </CardContent>
