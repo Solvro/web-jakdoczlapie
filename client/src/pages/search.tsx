@@ -148,7 +148,7 @@ export default function Search() {
   });
 
   useEffect(() => {
-    if (shouldSearch && routes !== undefined && routes.length === 0 && searchRadius < 5000) {
+    if (shouldSearch && routes !== undefined && routes.length === 0 && searchRadius < 25000) {
       const newRadius = searchRadius + 500;
       setSearchRadius(newRadius);
       setTimeout(() => refetch(), 100);
@@ -344,7 +344,7 @@ export default function Search() {
         </Card>
       )}
 
-      {shouldSearch && routes && routes.length === 0 && !isLoading && searchRadius >= 5000 && (
+      {shouldSearch && routes && routes.length === 0 && !isLoading && searchRadius >= 25000 && (
         <Card>
           <CardContent className="py-8">
             <div className="text-center">
