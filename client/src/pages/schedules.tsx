@@ -10,6 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Calendar, Search, Clock, MapPin } from "lucide-react";
 import { Stop, Route, Schedule, Condition } from "@shared/schema";
 import { api } from "@/lib/api";
@@ -88,44 +89,48 @@ export default function Schedules() {
               {stop.schedules && stop.schedules.length > 0 ? (
                 <CardContent className="pt-0">
                   <div className="border border-card-border rounded-md overflow-hidden">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="w-24">Godzina</TableHead>
-                          <TableHead>Kierunek</TableHead>
-                          <TableHead>Warunki</TableHead>
-                          <TableHead className="w-24">Run</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {stop.schedules.slice(0, 5).map((schedule: Schedule) => (
-                          <TableRow key={schedule.id}>
-                            <TableCell className="font-mono font-medium">
-                              {schedule.time}
-                            </TableCell>
-                            <TableCell className="text-foreground">
-                              {schedule.destination || '-'}
-                            </TableCell>
-                            <TableCell>
-                              {schedule.conditions && schedule.conditions.length > 0 ? (
-                                <div className="flex gap-1 flex-wrap">
-                                  {schedule.conditions.map((condition: Condition) => (
-                                    <Badge key={condition.id} variant="secondary" className="text-xs">
-                                      {condition.name}
-                                    </Badge>
-                                  ))}
-                                </div>
-                              ) : (
-                                <span className="text-muted-foreground text-sm">-</span>
-                              )}
-                            </TableCell>
-                            <TableCell className="text-muted-foreground font-mono text-sm">
-                              #{schedule.run || '-'}
-                            </TableCell>
+                    <ScrollArea className="max-h-96 w-full">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-24">Godzina</TableHead>
+                            <TableHead>Kierunek</TableHead>
+                            <TableHead>Warunki</TableHead>
+                            <TableHead className="w-24">Run</TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                        </TableHeader>
+                        <TableBody>
+                          {stop.schedules.slice(0, 5).map((schedule: Schedule) => (
+                            <TableRow key={schedule.id}>
+                              <TableCell className="font-mono font-medium">
+                                {schedule.time}
+                              </TableCell>
+                              <TableCell className="text-foreground">
+                                {schedule.destination || '-'}
+                              </TableCell>
+                              <TableCell>
+                                {schedule.conditions && schedule.conditions.length > 0 ? (
+                                  <div className="flex gap-1 flex-wrap">
+                                    {schedule.conditions.map((condition: Condition) => (
+                                      <Badge key={condition.id} variant="secondary" className="text-xs">
+                                        {condition.name}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <span className="text-muted-foreground text-sm">-</span>
+                                )}
+                              </TableCell>
+                              <TableCell className="text-muted-foreground font-mono text-sm">
+                                #{schedule.run || '-'}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                      <ScrollBar orientation="horizontal" />
+                      <ScrollBar orientation="vertical" />
+                    </ScrollArea>
                   </div>
                   {stop.schedules.length > 5 && (
                     <p className="text-xs text-muted-foreground mt-2 text-center">
