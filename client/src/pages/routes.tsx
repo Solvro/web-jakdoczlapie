@@ -1,20 +1,26 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Bus, Train, Search, MapPin } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Bus, Train, Search, MapPin, Upload, FileText, Image as ImageIcon, Loader2 } from "lucide-react";
 import { Route } from "@shared/schema";
 import { api } from "@/lib/api";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { useOperator } from "@/contexts/operator-context";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Routes() {
   const [searchQuery, setSearchQuery] = useState("");
   const [, setLocation] = useLocation();
   const { selectedOperator } = useOperator();
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [importedData, setImportedData] = useState<any>(null);
+  const { toast } = useToast();
   
   const { data: routes, isLoading } = useQuery<Route[]>({
     queryKey: [api.operators.getData(selectedOperator!)],
@@ -25,6 +31,53 @@ export default function Routes() {
     route.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     route.operator?.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const importRouteMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await fetch('/api/routes/import', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to import route');
+      }
+      
+      return response.json();
+    },
+    onSuccess: (data) => {
+      setImportedData(data);
+      toast({
+        title: "Trasa zaimportowana",
+        description: "Pomyślnie wyodrębniono dane z pliku",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        variant: "destructive",
+        title: "Błąd importu",
+        description: error.message,
+      });
+    },
+  });
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      setImportedData(null);
+    }
+  };
+
+  const handleImport = () => {
+    if (selectedFile) {
+      importRouteMutation.mutate(selectedFile);
+    }
+  };
 
   const getTypeIcon = (type?: string) => {
     if (type === 'train') return Train;
@@ -55,6 +108,13 @@ export default function Routes() {
               data-testid="input-search-routes"
             />
           </div>
+          <Button 
+            onClick={() => setIsImportDialogOpen(true)}
+            data-testid="button-import-route"
+          >
+            <Upload className="w-4 h-4 mr-2" />
+            Importuj trasę
+          </Button>
         </div>
       </div>
 
@@ -134,6 +194,99 @@ export default function Routes() {
           </CardContent>
         </Card>
       )}
+
+      <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Importuj trasę z pliku</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="border-2 border-dashed border-card-border rounded-lg p-6">
+              <input
+                type="file"
+                accept="image/*,.pdf"
+                onChange={handleFileSelect}
+                className="hidden"
+                id="route-file-upload"
+                data-testid="input-route-file-upload"
+              />
+              <label
+                htmlFor="route-file-upload"
+                className="flex flex-col items-center justify-center cursor-pointer"
+              >
+                {selectedFile ? (
+                  <div className="flex items-center gap-3">
+                    {selectedFile.type.startsWith('image/') ? (
+                      <ImageIcon className="w-8 h-8 text-primary" />
+                    ) : (
+                      <FileText className="w-8 h-8 text-primary" />
+                    )}
+                    <div>
+                      <p className="font-medium">{selectedFile.name}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <Upload className="w-12 h-12 text-muted-foreground mb-3" />
+                    <p className="text-sm text-muted-foreground">
+                      Kliknij aby wybrać plik (obraz lub PDF)
+                    </p>
+                  </>
+                )}
+              </label>
+            </div>
+
+            {selectedFile && !importedData && (
+              <Button 
+                onClick={handleImport} 
+                disabled={importRouteMutation.isPending}
+                className="w-full"
+                data-testid="button-process-route-file"
+              >
+                {importRouteMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Przetwarzanie...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-4 h-4 mr-2" />
+                    Wyodrębnij dane
+                  </>
+                )}
+              </Button>
+            )}
+
+            {importedData?.data && (
+              <div className="space-y-4">
+                <div className="bg-muted/50 rounded-md p-4">
+                  <h3 className="font-semibold mb-3">Wyodrębnione dane JSON:</h3>
+                  <pre className="text-xs bg-background p-4 rounded-md overflow-x-auto border" data-testid="text-imported-json">
+                    {JSON.stringify(importedData.data, null, 2)}
+                  </pre>
+                </div>
+
+                <Button 
+                  onClick={() => {
+                    setSelectedFile(null);
+                    setImportedData(null);
+                    setIsImportDialogOpen(false);
+                  }}
+                  variant="outline"
+                  className="w-full"
+                  data-testid="button-close-import"
+                >
+                  Zamknij
+                </Button>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

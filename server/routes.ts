@@ -19,6 +19,109 @@ const upload = multer({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Route import endpoint
+  app.post('/api/routes/import', upload.single('file'), async (req: Request, res: Response) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: 'No file uploaded' });
+      }
+
+      let content = '';
+      const fileType = req.file.mimetype;
+
+      // Handle PDF files
+      if (fileType === 'application/pdf') {
+        const pdfData = await pdfParse(req.file.buffer);
+        content = pdfData.text;
+      } 
+      // Handle image files
+      else if (fileType.startsWith('image/')) {
+        const base64Image = req.file.buffer.toString('base64');
+        
+        const visionResponse = await openai.chat.completions.create({
+          model: "gpt-5",
+          messages: [
+            {
+              role: "user",
+              content: [
+                {
+                  type: "text",
+                  text: "Extract all text content from this timetable image. Focus on schedule times, stop names, route information, and conditions."
+                },
+                {
+                  type: "image_url",
+                  image_url: {
+                    url: `data:${fileType};base64,${base64Image}`
+                  }
+                }
+              ],
+            },
+          ],
+          max_completion_tokens: 4096,
+        });
+
+        content = visionResponse.choices[0].message.content || '';
+      } else {
+        return res.status(400).json({ error: 'Unsupported file type. Please upload an image or PDF.' });
+      }
+
+      // Process the extracted content with OpenAI to structure it
+      const structureResponse = await openai.chat.completions.create({
+        model: "gpt-5",
+        messages: [
+          {
+            role: "system",
+            content: `You are a transportation schedule data extraction expert. Extract timetable information from the provided text and return it as JSON.
+
+The JSON format should be:
+{
+  "data": [
+    {
+      "route": "route name",
+      "operator": "operator name",
+      "type": "bus" or "train" or "tram",
+      "stops": [
+        {
+          "name": "stop name",
+          "time": "HH:MM",
+          "conditions": ["condition1", "condition2"],
+          "direction": "destination",
+          "run": run_number
+        }
+      ]
+    }
+  ]
+}
+
+Important rules:
+- Extract all stops with their times
+- Group stops by route and run number
+- Include all conditions/symbols (like D, ą, m, 6x, etc.)
+- Time must be in HH:MM format
+- Run number should be an integer
+- If multiple routes exist, create separate objects in the data array`
+          },
+          {
+            role: "user",
+            content: content
+          }
+        ],
+        response_format: { type: "json_object" },
+        max_completion_tokens: 8192,
+      });
+
+      const routeData = JSON.parse(structureResponse.choices[0].message.content || '{"data":[]}');
+      
+      res.json(routeData);
+    } catch (error) {
+      console.error('Route import error:', error);
+      res.status(500).json({ 
+        error: 'Failed to process route file', 
+        details: error instanceof Error ? error.message : 'Unknown error' 
+      });
+    }
+  });
+
   // Schedule import endpoint
   app.post('/api/schedules/import', upload.single('file'), async (req: Request, res: Response) => {
     try {
