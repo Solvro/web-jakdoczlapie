@@ -26,6 +26,7 @@ interface ScheduleMatrix {
 interface DestinationSchedules {
   destination: string;
   matrix: ScheduleMatrix;
+  sortedStops: Stop[];
 }
 
 export default function RouteDetails() {
@@ -44,6 +45,8 @@ export default function RouteDetails() {
     const destinationMap = new Map<string, {
       runSet: Set<number>;
       stopSchedules: Map<number, Map<number, Schedule>>;
+      stopSequences: Map<number, number[]>;
+      stopMap: Map<number, Stop>;
     }>();
 
     route.stops.forEach(stop => {
@@ -56,29 +59,51 @@ export default function RouteDetails() {
           destinationMap.set(dest, {
             runSet: new Set(),
             stopSchedules: new Map(),
+            stopSequences: new Map(),
+            stopMap: new Map(),
           });
         }
 
         const destData = destinationMap.get(dest)!;
         destData.runSet.add(schedule.run);
+        destData.stopMap.set(stop.id, stop);
 
         if (!destData.stopSchedules.has(stop.id)) {
           destData.stopSchedules.set(stop.id, new Map());
+          destData.stopSequences.set(stop.id, []);
         }
         
         destData.stopSchedules.get(stop.id)!.set(schedule.run, schedule);
+        
+        if (schedule.sequence !== undefined && schedule.sequence !== null) {
+          destData.stopSequences.get(stop.id)!.push(schedule.sequence);
+        }
       });
     });
 
     const result: DestinationSchedules[] = [];
     destinationMap.forEach((data, destination) => {
       const runs = Array.from(data.runSet).sort((a, b) => a - b);
+      
+      const stopIdsWithSequence: Array<{ stopId: number; minSequence: number }> = [];
+      data.stopSequences.forEach((sequences, stopId) => {
+        const minSequence = sequences.length > 0 ? Math.min(...sequences) : Infinity;
+        stopIdsWithSequence.push({ stopId, minSequence });
+      });
+      
+      stopIdsWithSequence.sort((a, b) => a.minSequence - b.minSequence);
+      
+      const sortedStops = stopIdsWithSequence
+        .map(({ stopId }) => data.stopMap.get(stopId)!)
+        .filter(stop => stop !== undefined);
+      
       result.push({
         destination,
         matrix: {
           runs,
           stopSchedules: data.stopSchedules,
         },
+        sortedStops,
       });
     });
 
@@ -134,7 +159,7 @@ export default function RouteDetails() {
   const TypeIcon = getTypeIcon(route.type);
 
   const renderScheduleTable = (destSchedule: DestinationSchedules) => {
-    const { destination, matrix } = destSchedule;
+    const { destination, matrix, sortedStops } = destSchedule;
 
     return (
       <Card key={destination} data-testid={`card-destination-${destination}`}>
@@ -165,7 +190,7 @@ export default function RouteDetails() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {route.stops!.map((stop: Stop, stopIndex: number) => {
+                  {sortedStops.map((stop: Stop, stopIndex: number) => {
                     const stopScheduleMap = matrix.stopSchedules.get(stop.id);
                     
                     if (!stopScheduleMap || stopScheduleMap.size === 0) {
