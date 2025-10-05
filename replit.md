@@ -34,7 +34,7 @@ Preferred communication style: Simple, everyday language.
 - Form handling with react-hook-form and Zod validation
 - Toast notifications for user feedback
 - Real-time data updates with automatic refetching
-- **Operator selection and filtering**: Global operator context with dropdown selector in header for filtering all data by transport operator
+- **Multi-operator selection and filtering**: Global operator context with checkbox-based multi-select dropdown in header for filtering all data by multiple transport operators simultaneously
 
 ### API Integration
 
@@ -52,7 +52,9 @@ Preferred communication style: Simple, everyday language.
 - **React Query Patterns**:
   - Custom `queryFn` pattern for nullable IDs: prevents invalid API calls by checking ID existence before fetch
   - Example: `queryFn: async () => { if (!id) return null; /* fetch logic */ }`
-  - Used in route-details.tsx and tracking.tsx for safe data fetching
+  - Multi-operator parallel queries: `selectedOperators.map(op => useQuery(...))` for aggregating data from multiple operators
+  - Data aggregation: `routeQueries.flatMap(q => q.data || [])` for combining results
+  - Loading state: `routeQueries.some(q => q.isLoading)` for parallel loading detection
   - Auto-refresh enabled for tracking data (refetchInterval: 15000ms)
 
 ### Application Structure
@@ -69,7 +71,7 @@ Preferred communication style: Simple, everyday language.
    - **Route Details** (`/routes/:id`) - Displays schedule tables with stops and departure times only (no map or reports section)
 3. **Reports** (`/reports`) - Incident and delay reporting
 4. **Schedules** (`/schedules`) - Stop schedules and timetables
-5. **Tracking** (`/tracking`) - Real-time vehicle location monitoring with map display, last vehicle location with timestamp, GPS tracks history table at bottom, and auto-refresh every 15 seconds
+5. **Tracking** (`/tracking`) - Real-time vehicle location monitoring with multi-route comparison capability, checkbox-based route selection, map display showing multiple routes simultaneously, GPS tracks history table at bottom, and auto-refresh every 15 seconds
 6. **Search** (`/search`) - Journey planning with interactive map for selecting start and end points, automatic connection search with progressive radius increase (1000m-25000m), displays journey options with routes, transfers, and distance
 
 **Data Models** (from shared schema):
@@ -80,20 +82,28 @@ Preferred communication style: Simple, everyday language.
 - Reports: Incident reports (delays, accidents, failures, etc.)
 - Conditions: Service conditions affecting schedules
 
-**Operator Filtering Feature**:
-- **Context**: Global operator context (`OperatorProvider`) manages selected operator state
-- **Persistence**: Selected operator stored in localStorage with key `jakdoczlapie_selected_operator`
-- **UI Component**: Operator selector dropdown in header (`OperatorSelector`)
+**Multi-Operator Selection and Multi-Route Tracking**:
+- **Context**: Global operator context (`OperatorProvider`) manages selected operators state (array of operators)
+- **Persistence**: Selected operators stored in localStorage with key `jakdoczlapie_selected_operators` (JSON array)
+- **UI Components**: 
+  - Multi-operator selector dropdown with checkboxes in header (`MultiOperatorSelector`)
+  - Single operator selector dropdown for backwards compatibility (`OperatorSelector`)
 - **Filtering Behavior**:
-  - When no operator selected: All data shown (routes, reports, schedules, tracking)
-  - When operator selected: Data filtered to show only that operator's information
+  - When no operators selected: No data shown (empty state)
+  - When operators selected: Data aggregated from all selected operators
   - Selection persists across page navigation and browser sessions
+- **Multi-Route Tracking**:
+  - Tracking page displays all routes from selected operators
+  - Checkbox-based route selection for comparison
+  - Map displays multiple selected routes simultaneously with different colors
+  - GPS tracks from all selected routes shown in consolidated table
+  - Real-time updates every 15 seconds for all tracked routes
 - **Implementation Files**:
-  - Context: `client/src/contexts/operator-context.tsx`
-  - Component: `client/src/components/operator-selector.tsx`
+  - Context: `client/src/contexts/operator-context.tsx` (manages selectedOperators array)
+  - Components: `client/src/components/multi-operator-selector.tsx`, `client/src/components/operator-selector.tsx`
   - API Integration: `client/src/lib/api.ts` (operators endpoints)
   - Schema: `shared/schema.ts` (Operator type)
-  - Pages: All pages (routes, reports, schedules, tracking) support operator filtering
+  - Pages: All pages (dashboard, routes, reports, schedules, tracking) support multi-operator filtering with parallel queries
 
 ### External Dependencies
 
