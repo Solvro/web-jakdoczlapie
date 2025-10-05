@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Stop, Track } from '@shared/schema';
+import { Stop, Track, Report } from '@shared/schema';
 
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -13,6 +13,7 @@ L.Icon.Default.mergeOptions({
 interface RouteMapProps {
   stops?: Stop[];
   tracks?: Track[];
+  reports?: Report[];
   selectedCoordinates?: { latitude: number; longitude: number } | null;
   onLocationSelect?: (latitude: number, longitude: number) => void;
   center?: [number, number];
@@ -23,6 +24,7 @@ interface RouteMapProps {
 export function RouteMap({
   stops = [],
   tracks = [],
+  reports = [],
   selectedCoordinates,
   onLocationSelect,
   center = [50.5, 18.0],
@@ -35,6 +37,7 @@ export function RouteMap({
   const polylineRef = useRef<L.Polyline | null>(null);
   const trackPolylineRef = useRef<L.Polyline | null>(null);
   const trackMarkersRef = useRef<L.Marker[]>([]);
+  const reportMarkersRef = useRef<L.Marker[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -180,6 +183,64 @@ export function RouteMap({
       }
     }
   }, [tracks, stops]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    reportMarkersRef.current.forEach(marker => marker.remove());
+    reportMarkersRef.current = [];
+
+    if (reports.length > 0) {
+      reports.forEach(report => {
+        if (report.coordinates) {
+          const lat = report.coordinates.latitude;
+          const lng = report.coordinates.longitude;
+
+          const getReportColor = (type?: string) => {
+            if (!type) return '#f59e0b';
+            if (['accident', 'failure', 'did_not_arrive'].includes(type)) return '#ef4444';
+            if (['delay', 'press'].includes(type)) return '#f59e0b';
+            return '#3b82f6';
+          };
+
+          const getReportLabel = (type?: string) => {
+            const labels: Record<string, string> = {
+              delay: 'Opóźnienie',
+              accident: 'Wypadek',
+              failure: 'Awaria',
+              press: 'Tłok',
+              did_not_arrive: 'Nie dojechał',
+            };
+            return labels[type || ''] || type || 'Zgłoszenie';
+          };
+
+          const color = getReportColor(report.type);
+          
+          const marker = L.marker([lat, lng], {
+            icon: L.divIcon({
+              className: 'custom-report-marker',
+              html: `<div style="background: ${color}; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 8px rgba(0,0,0,0.4);"></div>`,
+              iconSize: [20, 20],
+              iconAnchor: [10, 10],
+            }),
+          }).addTo(map);
+
+          const popupContent = `
+            <div style="min-width: 150px;">
+              <b>${getReportLabel(report.type)}</b><br/>
+              ${report.description ? `<p style="margin: 4px 0; font-size: 12px;">${report.description}</p>` : ''}
+              ${report.run ? `<small>Kurs #${report.run}</small><br/>` : ''}
+              ${report.created_at ? `<small>${new Date(report.created_at).toLocaleString('pl-PL')}</small>` : ''}
+            </div>
+          `;
+          
+          marker.bindPopup(popupContent);
+          reportMarkersRef.current.push(marker);
+        }
+      });
+    }
+  }, [reports]);
 
   useEffect(() => {
     if (!mapRef.current) return;
