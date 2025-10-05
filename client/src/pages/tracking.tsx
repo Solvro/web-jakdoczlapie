@@ -226,63 +226,71 @@ export default function Tracking() {
               )}
             </CardContent>
           </Card>
+        </div>
+      </div>
 
-          {tracks.length > 0 && (
-            <Card className="flex flex-col">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Activity className="w-5 h-5 text-primary" />
-                  Historia Śladów GPS
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="max-h-96 overflow-auto">
-                <div className="space-y-2">
+      {tracks.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Activity className="w-5 h-5 text-primary" />
+              Historia Śladów GPS
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="w-full" data-testid="table-tracks">
+                <thead>
+                  <tr className="border-b border-card-border">
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-foreground">Kurs</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-foreground">Szerokość geograficzna</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-foreground">Długość geograficzna</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-foreground">Data i czas</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-foreground">Czas względny</th>
+                  </tr>
+                </thead>
+                <tbody>
                   {tracks
                     .filter(track => track.coordinates)
                     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
                     .map((track, index) => (
-                    <div
-                      key={`${track.id}-${index}`}
-                      className="p-3 border border-card-border rounded-md bg-card"
-                      data-testid={`track-item-${index}`}
+                    <tr 
+                      key={`${track.id}-${index}`} 
+                      className="border-b border-card-border last:border-0 hover-elevate"
+                      data-testid={`track-row-${index}`}
                     >
-                      <div className="flex items-start gap-2">
-                        <MapPin className="w-4 h-4 text-chart-3 mt-0.5 flex-shrink-0" />
-                        <div className="flex-1 min-w-0 space-y-1">
-                          <div className="flex items-center justify-between gap-2">
-                            <p className="text-xs font-medium text-foreground">
-                              Kurs #{track.run}
-                            </p>
-                            <Badge variant="outline" className="text-xs">
-                              {formatDistanceToNow(new Date(track.created_at), { addSuffix: true, locale: pl })}
-                            </Badge>
-                          </div>
-                          <p className="text-xs text-muted-foreground font-mono">
-                            {track.coordinates!.latitude.toFixed(6)}, {track.coordinates!.longitude.toFixed(6)}
-                          </p>
-                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <Clock className="w-3 h-3" />
-                            <span>
-                              {new Date(track.created_at).toLocaleString('pl-PL', {
-                                day: '2-digit',
-                                month: '2-digit',
-                                year: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit',
-                                second: '2-digit'
-                              })}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                      <td className="py-3 px-4">
+                        <Badge variant="outline" className="font-mono">
+                          #{track.run}
+                        </Badge>
+                      </td>
+                      <td className="py-3 px-4 text-sm font-mono text-muted-foreground">
+                        {track.coordinates!.latitude.toFixed(6)}
+                      </td>
+                      <td className="py-3 px-4 text-sm font-mono text-muted-foreground">
+                        {track.coordinates!.longitude.toFixed(6)}
+                      </td>
+                      <td className="py-3 px-4 text-sm text-muted-foreground">
+                        {new Date(track.created_at).toLocaleString('pl-PL', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          second: '2-digit'
+                        })}
+                      </td>
+                      <td className="py-3 px-4 text-sm text-muted-foreground">
+                        {formatDistanceToNow(new Date(track.created_at), { addSuffix: true, locale: pl })}
+                      </td>
+                    </tr>
                   ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-      </div>
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
