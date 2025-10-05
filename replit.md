@@ -38,11 +38,12 @@ Preferred communication style: Simple, everyday language.
 
 ### API Integration
 
-**Direct API Communication**:
-- Frontend makes direct HTTP requests to external API at `https://jak-doczlapie-hackyeah.b.solvro.pl`
-- No backend proxy server required
+**Backend Proxy Architecture**:
+- Express backend server acts as a proxy to external API
+- Frontend calls `/api/v1/*` which proxies to `https://jak-doczlapie-hackyeah.b.solvro.pl/api/v1`
+- Backend handles file uploads and AI processing for schedule imports
 - All API calls handled through TanStack Query (React Query)
-- Base URL configured in `client/src/lib/queryClient.ts`
+- OpenAI integration (gpt-5) for extracting timetables from images/PDFs
 
 **Data Layer**:
 - Schema definitions with Zod validation in shared directory
@@ -55,7 +56,7 @@ Preferred communication style: Simple, everyday language.
 - `/client` - React frontend application (main app directory)
 - `/shared` - Shared TypeScript schemas and types
 - `/attached_assets` - Static assets and API documentation
-- `/server` - Legacy backend files (not in use)
+- `/server` - Express backend server (proxy + AI features)
 
 **Key Routes**:
 1. **Dashboard** (`/`) - Overview statistics and recent reports
@@ -104,9 +105,9 @@ Preferred communication style: Simple, everyday language.
 - **Development**: Replit-specific plugins for runtime errors and cartographer
 
 **API Integration**:
-- RESTful API consumed directly from `https://jak-doczlapie-hackyeah.b.solvro.pl/api/v1`
+- RESTful API proxied through Express backend to `https://jak-doczlapie-hackyeah.b.solvro.pl/api/v1`
 - OpenAPI/Swagger documentation available in `attached_assets/swagger_1759631884723.yml`
-- No backend proxy - all requests made directly from browser
+- Backend provides additional features: AI-powered schedule import from images/PDFs using OpenAI gpt-5
 
 **Available Endpoints**:
 
