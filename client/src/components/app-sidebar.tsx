@@ -2,7 +2,6 @@ import {
   LayoutDashboard,
   Bus,
   AlertTriangle,
-  Calendar,
   MapPin,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
@@ -33,11 +32,6 @@ const menuItems = [
     title: "Raporty",
     url: "/reports",
     icon: AlertTriangle,
-  },
-  {
-    title: "Rozkłady",
-    url: "/schedules",
-    icon: Calendar,
   },
   {
     title: "Śledzenie",

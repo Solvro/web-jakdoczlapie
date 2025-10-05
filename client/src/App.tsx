@@ -11,7 +11,6 @@ import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
 import Routes from "@/pages/routes";
 import Reports from "@/pages/reports";
-import Schedules from "@/pages/schedules";
 import Tracking from "@/pages/tracking";
 
 function Router() {
@@ -20,7 +19,6 @@ function Router() {
       <Route path="/" component={Dashboard} />
       <Route path="/routes" component={Routes} />
       <Route path="/reports" component={Reports} />
-      <Route path="/schedules" component={Schedules} />
       <Route path="/tracking" component={Tracking} />
       <Route component={NotFound} />
     </Switch>
