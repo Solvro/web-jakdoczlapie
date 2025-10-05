@@ -7,27 +7,21 @@ import { api } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow } from "date-fns";
 import { pl } from "date-fns/locale";
+import { useOperator } from "@/contexts/operator-context";
 
 export default function Dashboard() {
-  const { data: routes, isLoading: routesLoading } = useQuery<Route[]>({
-    queryKey: [api.routes.getAll()],
+  const { selectedOperator } = useOperator();
+
+  const { data: routesData, isLoading: routesLoading } = useQuery<Route[]>({
+    queryKey: [api.operators.getData(selectedOperator!)],
+    enabled: !!selectedOperator,
   });
 
-  const { data: reportsData, isLoading: reportsLoading } = useQuery<Report[]>({
-    queryKey: ['/api/v1/reports-sample'],
-    queryFn: async () => {
-      if (routes && routes.length > 0) {
-        const response = await fetch(api.routes.getReports(routes[0].id));
-        if (!response.ok) return [];
-        return response.json();
-      }
-      return [];
-    },
-    enabled: !!routes && routes.length > 0,
-  });
+  const routes = routesData || [];
+  const reports = routes.flatMap(route => route.reports || []);
 
-  const totalRoutes = routes?.length || 0;
-  const activeRoutes = routes?.filter(r => r.type === 'bus' || r.type === 'train')?.length || 0;
+  const totalRoutes = routes.length || 0;
+  const activeRoutes = routes.filter(r => r.type === 'bus' || r.type === 'train').length || 0;
 
   const getReportTypeLabel = (type: string) => {
     const labels: Record<string, string> = {
@@ -73,9 +67,9 @@ export default function Dashboard() {
         />
         <StatCard
           title="Raporty Dziś"
-          value={reportsData?.length || 0}
+          value={reports.length || 0}
           icon={AlertTriangle}
-          isLoading={reportsLoading}
+          isLoading={routesLoading}
         />
         <StatCard
           title="Średnie Opóźnienie"
@@ -93,15 +87,15 @@ export default function Dashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {reportsLoading ? (
+            {routesLoading ? (
               <div className="space-y-3">
                 {[1, 2, 3].map((i) => (
                   <div key={i} className="h-16 bg-muted animate-pulse rounded-md" />
                 ))}
               </div>
-            ) : reportsData && reportsData.length > 0 ? (
+            ) : reports && reports.length > 0 ? (
               <div className="space-y-3">
-                {reportsData.slice(0, 5).map((report) => (
+                {reports.slice(0, 5).map((report) => (
                   <div
                     key={report.id}
                     className="p-3 bg-card border border-card-border rounded-md hover-elevate"

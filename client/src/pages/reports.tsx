@@ -47,9 +47,8 @@ export default function Reports() {
   const { selectedOperator } = useOperator();
   
   const { data: routesData, isLoading: isLoadingRoutes } = useQuery<Route[]>({
-    queryKey: selectedOperator 
-      ? [api.operators.getData(selectedOperator)]
-      : [api.routes.getAll()],
+    queryKey: [api.operators.getData(selectedOperator!)],
+    enabled: !!selectedOperator,
   });
 
   const reports = routesData?.flatMap(route => route.reports || []) || [];

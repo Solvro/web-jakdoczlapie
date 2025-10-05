@@ -21,9 +21,8 @@ export default function Schedules() {
   const { selectedOperator } = useOperator();
   
   const { data: routesData, isLoading: isLoadingRoutes } = useQuery<Route[]>({
-    queryKey: selectedOperator 
-      ? [api.operators.getData(selectedOperator)]
-      : [api.routes.getAll()],
+    queryKey: [api.operators.getData(selectedOperator!)],
+    enabled: !!selectedOperator,
   });
 
   const stops = routesData?.flatMap(route => route.stops || []) || [];

@@ -15,9 +15,8 @@ export default function Routes() {
   const { selectedOperator } = useOperator();
   
   const { data: routes, isLoading } = useQuery<Route[]>({
-    queryKey: selectedOperator 
-      ? [api.operators.getData(selectedOperator)]
-      : [api.routes.getAll()],
+    queryKey: [api.operators.getData(selectedOperator!)],
+    enabled: !!selectedOperator,
   });
 
   const filteredRoutes = routes?.filter(route =>

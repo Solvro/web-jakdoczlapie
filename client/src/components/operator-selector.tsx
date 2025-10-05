@@ -27,19 +27,16 @@ export function OperatorSelector() {
 
   return (
     <Select
-      value={selectedOperator || "all"}
-      onValueChange={(value) => setSelectedOperator(value === "all" ? null : value)}
+      value={selectedOperator || operators?.[0] || "LUZ"}
+      onValueChange={(value) => setSelectedOperator(value)}
     >
       <SelectTrigger 
         className="w-48" 
         data-testid="select-operator"
       >
-        <SelectValue placeholder="Wszyscy operatorzy" />
+        <SelectValue placeholder="Wybierz operatora" />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value="all" data-testid="option-operator-all">
-          Wszyscy operatorzy
-        </SelectItem>
         {operators?.map((operator) => (
           <SelectItem 
             key={operator} 

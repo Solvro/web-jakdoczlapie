@@ -11,7 +11,7 @@ const OperatorContext = createContext<OperatorContextType | undefined>(undefined
 export function OperatorProvider({ children }: { children: ReactNode }) {
   const [selectedOperator, setSelectedOperator] = useState<Operator | null>(() => {
     const stored = localStorage.getItem("selectedOperator");
-    return stored || null;
+    return stored || "LUZ"; // Default to LUZ operator
   });
 
   useEffect(() => {
