@@ -1,0 +1,45 @@
+const API_BASE_URL = 'https://jak-doczlapie-hackyeah.b.solvro.pl/api/v1';
+
+export const api = {
+  routes: {
+    getAll: (params?: { 
+      fromLatitude?: number;
+      fromLongitude?: number;
+      toLatitude?: number;
+      toLongitude?: number;
+      radius?: number;
+    }) => {
+      const searchParams = new URLSearchParams();
+      if (params) {
+        Object.entries(params).forEach(([key, value]) => {
+          if (value !== undefined) {
+            searchParams.append(key, String(value));
+          }
+        });
+      }
+      return `${API_BASE_URL}/routes${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
+    },
+    getById: (id: number) => `${API_BASE_URL}/routes/${id}`,
+    getReports: (id: number) => `${API_BASE_URL}/routes/${id}/reports`,
+    createReport: (id: number) => `${API_BASE_URL}/routes/${id}/reports`,
+    createTrack: (id: number) => `${API_BASE_URL}/routes/${id}/tracks`,
+  },
+  stops: {
+    getAll: (params?: {
+      latitude?: number;
+      longitude?: number;
+      radius?: number;
+    }) => {
+      const searchParams = new URLSearchParams();
+      if (params) {
+        Object.entries(params).forEach(([key, value]) => {
+          if (value !== undefined) {
+            searchParams.append(key, String(value));
+          }
+        });
+      }
+      return `${API_BASE_URL}/stops${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
+    },
+    getById: (id: number) => `${API_BASE_URL}/stops/${id}`,
+  },
+};
