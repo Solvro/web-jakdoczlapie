@@ -34,6 +34,7 @@ Preferred communication style: Simple, everyday language.
 - Form handling with react-hook-form and Zod validation
 - Toast notifications for user feedback
 - Real-time data updates with automatic refetching
+- **Operator selection and filtering**: Global operator context with dropdown selector in header for filtering all data by transport operator
 
 ### Backend Architecture
 
@@ -75,11 +76,27 @@ Preferred communication style: Simple, everyday language.
 5. **Tracking** (`/tracking`) - Real-time vehicle location monitoring
 
 **Data Models** (from shared schema):
+- Operators: Transport operator names (simple string array)
 - Routes: Transportation routes with type, operator, stops
 - Stops: Bus/train/tram stops with geolocation (GeoJSON Point)
 - Schedules: Timetables with sequence, time, conditions
 - Reports: Incident reports (delays, accidents, failures, etc.)
 - Conditions: Service conditions affecting schedules
+
+**Operator Filtering Feature**:
+- **Context**: Global operator context (`OperatorProvider`) manages selected operator state
+- **Persistence**: Selected operator stored in localStorage with key `jakdoczlapie_selected_operator`
+- **UI Component**: Operator selector dropdown in header (`OperatorSelector`)
+- **Filtering Behavior**:
+  - When no operator selected: All data shown (routes, reports, schedules, tracking)
+  - When operator selected: Data filtered to show only that operator's information
+  - Selection persists across page navigation and browser sessions
+- **Implementation Files**:
+  - Context: `client/src/contexts/operator-context.tsx`
+  - Component: `client/src/components/operator-selector.tsx`
+  - API Integration: `client/src/lib/api.ts` (operators endpoints)
+  - Schema: `shared/schema.ts` (Operator type)
+  - Pages: All pages (routes, reports, schedules, tracking) support operator filtering
 
 ### External Dependencies
 
@@ -104,7 +121,15 @@ Preferred communication style: Simple, everyday language.
 
 **Available Endpoints**:
 
-1. **Routes API**
+1. **Operators API**
+   - `GET /api/v1/operators` - Get list of all operators
+     - Returns: Array of operator names (e.g., ["LUZ", "PKS w Strzelcach Op. S.A.", "POLREGIO"])
+   - `GET /api/v1/operators/{name}/routes` - Get routes for specific operator
+   - `GET /api/v1/operators/{name}/reports` - Get reports for specific operator
+   - `GET /api/v1/operators/{name}/stops` - Get stops for specific operator
+   - Note: Some operator-specific endpoints may not be fully implemented on backend
+
+2. **Routes API**
    - `GET /api/v1/routes` - Find routes with journey planning
      - Query params: `fromLatitude`, `fromLongitude`, `toLatitude`, `toLongitude`, `radius` (default: 1000m), `transferRadius` (default: 200m), `maxTransfers` (default: 2)
      - Returns: Array of journey options with transfers
@@ -118,7 +143,7 @@ Preferred communication style: Simple, everyday language.
    - `POST /api/v1/routes/{id}/tracks` - Submit vehicle tracking data
      - Body: `{ coordinates: { latitude, longitude }, run }`
 
-2. **Stops API**
+3. **Stops API**
    - `GET /api/v1/stops` - Get nearby stops
      - Query params: `latitude`, `longitude`, `radius` (meters)
    - `GET /api/v1/stops/{id}` - Get stop details with schedules
