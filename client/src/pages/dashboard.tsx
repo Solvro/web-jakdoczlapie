@@ -63,7 +63,6 @@ export default function Dashboard() {
           value={activeRoutes}
           icon={TrendingUp}
           isLoading={routesLoading}
-          trend={{ value: 12, isPositive: true }}
         />
         <StatCard
           title="Raporty Dziś"
