@@ -49,6 +49,11 @@ Preferred communication style: Simple, everyday language.
 - Schema definitions with Zod validation in shared directory
 - Type-safe API responses using TypeScript interfaces
 - Client-side state management via React Query cache
+- **React Query Patterns**:
+  - Custom `queryFn` pattern for nullable IDs: prevents invalid API calls by checking ID existence before fetch
+  - Example: `queryFn: async () => { if (!id) return null; /* fetch logic */ }`
+  - Used in route-details.tsx and tracking.tsx for safe data fetching
+  - Auto-refresh enabled for tracking data (refetchInterval: 15000ms)
 
 ### Application Structure
 
@@ -61,9 +66,10 @@ Preferred communication style: Simple, everyday language.
 **Key Routes**:
 1. **Dashboard** (`/`) - Overview statistics and recent reports
 2. **Routes** (`/routes`) - Bus/train route management
+   - **Route Details** (`/routes/:id`) - Displays schedule tables with stops and departure times only (no map or reports section)
 3. **Reports** (`/reports`) - Incident and delay reporting
 4. **Schedules** (`/schedules`) - Stop schedules and timetables
-5. **Tracking** (`/tracking`) - Real-time vehicle location monitoring
+5. **Tracking** (`/tracking`) - Real-time vehicle location monitoring with map display, last vehicle location with timestamp, and auto-refresh every 15 seconds
 
 **Data Models** (from shared schema):
 - Operators: Transport operator names (simple string array)
