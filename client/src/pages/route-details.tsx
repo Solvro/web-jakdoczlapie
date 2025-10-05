@@ -35,8 +35,14 @@ export default function RouteDetails() {
   const routeId = params?.id ? parseInt(params.id) : null;
 
   const { data: route, isLoading } = useQuery<Route>({
-    queryKey: [api.routes.getById(routeId!)],
-    enabled: routeId !== null,
+    queryKey: ['/api/v1/routes', routeId],
+    queryFn: async () => {
+      if (!routeId) return null;
+      const response = await fetch(api.routes.getById(routeId));
+      if (!response.ok) throw new Error('Failed to fetch route');
+      return response.json();
+    },
+    enabled: !!routeId,
   });
 
   const schedulesByDestination = useMemo((): DestinationSchedules[] => {
