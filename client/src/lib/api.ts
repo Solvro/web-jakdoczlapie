@@ -1,6 +1,13 @@
 const API_BASE_URL = '/api/v1';
 
 export const api = {
+  operators: {
+    getAll: () => `${API_BASE_URL}/operators`,
+    getRoutes: (name: string) => `${API_BASE_URL}/operators/${encodeURIComponent(name)}/routes`,
+    getReports: (name: string) => `${API_BASE_URL}/operators/${encodeURIComponent(name)}/reports`,
+    getSchedules: (name: string) => `${API_BASE_URL}/operators/${encodeURIComponent(name)}/schedules`,
+    getStops: (name: string) => `${API_BASE_URL}/operators/${encodeURIComponent(name)}/stops`,
+  },
   routes: {
     getAll: (params?: { 
       fromLatitude?: number;

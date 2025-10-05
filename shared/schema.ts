@@ -195,3 +195,8 @@ export const routeSearchResultSchema = z.object({
 });
 
 export type RouteSearchResult = z.infer<typeof routeSearchResultSchema>;
+
+// Operator schema
+export const operatorSchema = z.string();
+
+export type Operator = z.infer<typeof operatorSchema>;
