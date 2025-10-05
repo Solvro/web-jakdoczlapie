@@ -362,6 +362,24 @@ export default function RouteDetails() {
           </CardContent>
         </Card>
       )}
+
+      {schedulesByDestination.length > 0 && (
+        <div className="space-y-6">
+          <h2 className="text-2xl font-bold text-foreground">Rozkład Jazdy</h2>
+          {schedulesByDestination.map(destSchedule => renderScheduleTable(destSchedule))}
+        </div>
+      )}
+
+      {schedulesByDestination.length === 0 && (
+        <Card>
+          <CardContent className="py-12">
+            <div className="text-center">
+              <Clock className="w-8 h-8 text-muted-foreground mx-auto mb-2 opacity-50" />
+              <p className="text-sm text-muted-foreground">Brak rozkładu jazdy dla tej trasy</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

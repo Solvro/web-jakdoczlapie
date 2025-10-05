@@ -131,7 +131,7 @@ export default function Tracking() {
               </CardTitle>
             </CardHeader>
             <CardContent className="flex-1 p-0">
-              {selectedRoute && selectedRun && tracks.length > 0 ? (
+              {selectedRoute ? (
                 <RouteMap
                   stops={selectedRoute.stops || []}
                   tracks={tracks}
@@ -141,11 +141,9 @@ export default function Tracking() {
                 <div className="w-full h-full bg-muted rounded-b-lg flex items-center justify-center">
                   <div className="text-center p-6">
                     <Activity className="w-16 h-16 text-primary mx-auto mb-4 opacity-70" />
-                    <h3 className="text-lg font-semibold text-foreground mb-2">Brak Danych Śledzenia</h3>
+                    <h3 className="text-lg font-semibold text-foreground mb-2">Wybierz Trasę</h3>
                     <p className="text-sm text-muted-foreground max-w-md">
-                      {!selectedRoute ? "Wybierz trasę z listy po prawej stronie" : 
-                       !selectedRun ? "Wybierz przebieg z rozwijanej listy" :
-                       "Brak dostępnych śladów GPS dla wybranego przebiegu"}
+                      Wybierz trasę z listy po prawej stronie, aby zobaczyć mapę
                     </p>
                   </div>
                 </div>
