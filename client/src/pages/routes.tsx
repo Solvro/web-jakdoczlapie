@@ -1,18 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Bus, Train, Search, MapPin, ChevronDown, ChevronUp, Clock } from "lucide-react";
-import { Route, Schedule, Condition } from "@shared/schema";
+import { Bus, Train, Search, MapPin } from "lucide-react";
+import { Route } from "@shared/schema";
 import { api } from "@/lib/api";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -20,17 +13,12 @@ import { useOperator } from "@/contexts/operator-context";
 
 export default function Routes() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [expandedRouteId, setExpandedRouteId] = useState<number | null>(null);
+  const [, setLocation] = useLocation();
   const { selectedOperator } = useOperator();
   
   const { data: routes, isLoading } = useQuery<Route[]>({
     queryKey: [api.operators.getData(selectedOperator!)],
     enabled: !!selectedOperator,
-  });
-
-  const { data: expandedRoute, isLoading: isLoadingDetails } = useQuery<Route>({
-    queryKey: [api.routes.getById(expandedRouteId!)],
-    enabled: expandedRouteId !== null,
   });
 
   const filteredRoutes = routes?.filter(route =>
@@ -124,118 +112,11 @@ export default function Routes() {
                     size="sm" 
                     className="w-full" 
                     data-testid={`button-view-route-${route.id}`}
-                    onClick={() => setExpandedRouteId(expandedRouteId === route.id ? null : route.id)}
+                    onClick={() => setLocation(`/routes/${route.id}`)}
                   >
-                    {expandedRouteId === route.id ? (
-                      <>
-                        <ChevronUp className="w-4 h-4 mr-2" />
-                        Ukryj szczegóły
-                      </>
-                    ) : (
-                      <>
-                        <ChevronDown className="w-4 h-4 mr-2" />
-                        Zobacz szczegóły
-                      </>
-                    )}
+                    Zobacz szczegóły
                   </Button>
                 </CardContent>
-                {expandedRouteId === route.id && (
-                  <CardContent className="pt-0 border-t border-card-border">
-                    {isLoadingDetails ? (
-                      <div className="py-8">
-                        <div className="h-48 bg-muted animate-pulse rounded-md" />
-                      </div>
-                    ) : expandedRoute?.route_stops && expandedRoute.route_stops.length > 0 ? (
-                      <div className="mt-4">
-                        <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
-                          <MapPin className="w-4 h-4 text-primary" />
-                          Przystanki i rozkłady jazdy
-                        </h3>
-                        <div className="border border-card-border rounded-md overflow-hidden">
-                          <Table>
-                            <TableHeader>
-                              <TableRow>
-                                <TableHead>Przystanek</TableHead>
-                                <TableHead className="w-32">Godzina</TableHead>
-                                <TableHead>Kierunek</TableHead>
-                                <TableHead>Warunki</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {expandedRoute.route_stops.map((routeStop) => {
-                                const stop = routeStop.stop;
-                                const schedules = routeStop.schedules || [];
-                                
-                                if (schedules.length === 0) {
-                                  return (
-                                    <TableRow key={routeStop.id}>
-                                      <TableCell className="font-medium">
-                                        <div className="flex items-center gap-2">
-                                          <MapPin className="w-4 h-4 text-muted-foreground" />
-                                          {stop?.name || `Przystanek #${routeStop.stop_id}`}
-                                        </div>
-                                      </TableCell>
-                                      <TableCell colSpan={3} className="text-muted-foreground text-sm">
-                                        Brak rozkładów
-                                      </TableCell>
-                                    </TableRow>
-                                  );
-                                }
-
-                                return schedules.slice(0, 3).map((schedule: Schedule, idx: number) => (
-                                  <TableRow key={`${routeStop.id}-${schedule.id}`}>
-                                    {idx === 0 && (
-                                      <TableCell rowSpan={Math.min(schedules.length, 3)} className="font-medium align-top">
-                                        <div className="flex items-center gap-2">
-                                          <MapPin className="w-4 h-4 text-muted-foreground" />
-                                          {stop?.name || `Przystanek #${routeStop.stop_id}`}
-                                        </div>
-                                        {stop?.type && (
-                                          <Badge variant="outline" className="capitalize text-xs mt-2">
-                                            {stop.type}
-                                          </Badge>
-                                        )}
-                                      </TableCell>
-                                    )}
-                                    <TableCell className="font-mono font-medium">
-                                      {schedule.time}
-                                    </TableCell>
-                                    <TableCell className="text-foreground">
-                                      {schedule.destination || '-'}
-                                    </TableCell>
-                                    <TableCell>
-                                      {schedule.conditions && schedule.conditions.length > 0 ? (
-                                        <div className="flex gap-1 flex-wrap">
-                                          {schedule.conditions.map((condition: Condition) => (
-                                            <Badge key={condition.id} variant="secondary" className="text-xs">
-                                              {condition.name}
-                                            </Badge>
-                                          ))}
-                                        </div>
-                                      ) : (
-                                        <span className="text-muted-foreground text-sm">-</span>
-                                      )}
-                                    </TableCell>
-                                  </TableRow>
-                                ));
-                              })}
-                            </TableBody>
-                          </Table>
-                        </div>
-                        {expandedRoute.route_stops.some(rs => (rs.schedules?.length || 0) > 3) && (
-                          <p className="text-xs text-muted-foreground mt-2 text-center">
-                            Wyświetlono pierwsze 3 kursy dla każdego przystanku
-                          </p>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="text-center py-8 bg-muted/50 rounded-md mt-4">
-                        <Clock className="w-8 h-8 text-muted-foreground mx-auto mb-2 opacity-50" />
-                        <p className="text-sm text-muted-foreground">Brak szczegółowych danych dla tej trasy</p>
-                      </div>
-                    )}
-                  </CardContent>
-                )}
               </Card>
             );
           })}

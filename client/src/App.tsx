@@ -10,6 +10,7 @@ import { OperatorSelector } from "@/components/operator-selector";
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
 import Routes from "@/pages/routes";
+import RouteDetails from "@/pages/route-details";
 import Reports from "@/pages/reports";
 import Tracking from "@/pages/tracking";
 
@@ -17,6 +18,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Dashboard} />
+      <Route path="/routes/:id" component={RouteDetails} />
       <Route path="/routes" component={Routes} />
       <Route path="/reports" component={Reports} />
       <Route path="/tracking" component={Tracking} />
