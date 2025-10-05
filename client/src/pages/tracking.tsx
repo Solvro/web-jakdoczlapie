@@ -13,7 +13,7 @@ export default function Tracking() {
   
   const { data: routes, isLoading } = useQuery<Route[]>({
     queryKey: selectedOperator 
-      ? [api.operators.getRoutes(selectedOperator)]
+      ? [api.operators.getData(selectedOperator)]
       : [api.routes.getAll()],
   });
 

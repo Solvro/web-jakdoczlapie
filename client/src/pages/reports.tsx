@@ -46,40 +46,14 @@ export default function Reports() {
   const { toast } = useToast();
   const { selectedOperator } = useOperator();
   
-  const { data: allRoutes } = useQuery<Route[]>({
-    queryKey: [api.routes.getAll()],
+  const { data: routesData, isLoading: isLoadingRoutes } = useQuery<Route[]>({
+    queryKey: selectedOperator 
+      ? [api.operators.getData(selectedOperator)]
+      : [api.routes.getAll()],
   });
 
-  const { data: reports, isLoading } = useQuery<Report[]>({
-    queryKey: selectedOperator 
-      ? [api.operators.getReports(selectedOperator)]
-      : ['/api/v1/reports-aggregate'],
-    queryFn: async ({ queryKey }) => {
-      if (selectedOperator) {
-        const response = await fetch(queryKey[0] as string);
-        if (response.ok) {
-          return await response.json();
-        }
-        return [];
-      }
-      
-      if (allRoutes && allRoutes.length > 0) {
-        const allReports: Report[] = [];
-        for (const route of allRoutes.slice(0, 5)) {
-          const response = await fetch(api.routes.getReports(route.id));
-          if (response.ok) {
-            const routeReports = await response.json();
-            if (Array.isArray(routeReports)) {
-              allReports.push(...routeReports);
-            }
-          }
-        }
-        return allReports;
-      }
-      return [];
-    },
-    enabled: selectedOperator ? true : (!!allRoutes && allRoutes.length > 0),
-  });
+  const reports = routesData?.flatMap(route => route.reports || []) || [];
+  const isLoading = isLoadingRoutes;
 
   const createReportMutation = useMutation({
     mutationFn: async (data: CreateReportInput & { routeId: number }) => {
@@ -87,10 +61,9 @@ export default function Reports() {
       return apiRequest('POST', api.routes.createReport(routeId), reportData);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/v1/reports-aggregate'] });
+      queryClient.invalidateQueries({ queryKey: [api.routes.getAll()] });
       if (selectedOperator) {
-        queryClient.invalidateQueries({ queryKey: [api.operators.getReports(selectedOperator)] });
-        queryClient.invalidateQueries({ queryKey: [api.operators.getRoutes(selectedOperator)] });
+        queryClient.invalidateQueries({ queryKey: [api.operators.getData(selectedOperator)] });
       }
       setIsDialogOpen(false);
       toast({

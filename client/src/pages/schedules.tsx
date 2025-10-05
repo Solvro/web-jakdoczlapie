@@ -11,7 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Calendar, Search, Clock, MapPin } from "lucide-react";
-import { Stop } from "@shared/schema";
+import { Stop, Route, Schedule, Condition } from "@shared/schema";
 import { api } from "@/lib/api";
 import { useState } from "react";
 import { useOperator } from "@/contexts/operator-context";
@@ -20,11 +20,14 @@ export default function Schedules() {
   const [searchQuery, setSearchQuery] = useState("");
   const { selectedOperator } = useOperator();
   
-  const { data: stops, isLoading } = useQuery<Stop[]>({
+  const { data: routesData, isLoading: isLoadingRoutes } = useQuery<Route[]>({
     queryKey: selectedOperator 
-      ? [api.operators.getStops(selectedOperator)]
-      : [api.stops.getAll()],
+      ? [api.operators.getData(selectedOperator)]
+      : [api.routes.getAll()],
   });
+
+  const stops = routesData?.flatMap(route => route.stops || []) || [];
+  const isLoading = isLoadingRoutes;
 
   const filteredStops = stops?.filter(stop =>
     stop.name?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -96,7 +99,7 @@ export default function Schedules() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {stop.schedules.slice(0, 5).map((schedule) => (
+                        {stop.schedules.slice(0, 5).map((schedule: Schedule) => (
                           <TableRow key={schedule.id}>
                             <TableCell className="font-mono font-medium">
                               {schedule.time}
@@ -107,7 +110,7 @@ export default function Schedules() {
                             <TableCell>
                               {schedule.conditions && schedule.conditions.length > 0 ? (
                                 <div className="flex gap-1 flex-wrap">
-                                  {schedule.conditions.map((condition) => (
+                                  {schedule.conditions.map((condition: Condition) => (
                                     <Badge key={condition.id} variant="secondary" className="text-xs">
                                       {condition.name}
                                     </Badge>
