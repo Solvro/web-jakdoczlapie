@@ -5,12 +5,16 @@ import { MapPin, Navigation, Clock, Bus, Activity } from "lucide-react";
 import { Route } from "@shared/schema";
 import { api } from "@/lib/api";
 import { useState, useEffect } from "react";
+import { useOperator } from "@/contexts/operator-context";
 
 export default function Tracking() {
   const [selectedRoute, setSelectedRoute] = useState<Route | null>(null);
+  const { selectedOperator } = useOperator();
   
   const { data: routes, isLoading } = useQuery<Route[]>({
-    queryKey: [api.routes.getAll()],
+    queryKey: selectedOperator 
+      ? [api.operators.getRoutes(selectedOperator)]
+      : [api.routes.getAll()],
   });
 
   const { data: trackingData, refetch: refetchTracking } = useQuery({

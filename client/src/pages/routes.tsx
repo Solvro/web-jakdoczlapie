@@ -8,12 +8,16 @@ import { Route } from "@shared/schema";
 import { api } from "@/lib/api";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { useOperator } from "@/contexts/operator-context";
 
 export default function Routes() {
   const [searchQuery, setSearchQuery] = useState("");
+  const { selectedOperator } = useOperator();
   
   const { data: routes, isLoading } = useQuery<Route[]>({
-    queryKey: [api.routes.getAll()],
+    queryKey: selectedOperator 
+      ? [api.operators.getRoutes(selectedOperator)]
+      : [api.routes.getAll()],
   });
 
   const filteredRoutes = routes?.filter(route =>

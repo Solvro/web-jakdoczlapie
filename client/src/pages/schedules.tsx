@@ -14,12 +14,16 @@ import { Calendar, Search, Clock, MapPin } from "lucide-react";
 import { Stop } from "@shared/schema";
 import { api } from "@/lib/api";
 import { useState } from "react";
+import { useOperator } from "@/contexts/operator-context";
 
 export default function Schedules() {
   const [searchQuery, setSearchQuery] = useState("");
+  const { selectedOperator } = useOperator();
   
   const { data: stops, isLoading } = useQuery<Stop[]>({
-    queryKey: [api.stops.getAll()],
+    queryKey: selectedOperator 
+      ? [api.operators.getStops(selectedOperator)]
+      : [api.stops.getAll()],
   });
 
   const filteredStops = stops?.filter(stop =>

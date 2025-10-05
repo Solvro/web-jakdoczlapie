@@ -39,18 +39,30 @@ import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
 import { pl } from "date-fns/locale";
+import { useOperator } from "@/contexts/operator-context";
 
 export default function Reports() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { toast } = useToast();
+  const { selectedOperator } = useOperator();
   
   const { data: allRoutes } = useQuery<Route[]>({
     queryKey: [api.routes.getAll()],
   });
 
   const { data: reports, isLoading } = useQuery<Report[]>({
-    queryKey: ['/api/v1/reports-aggregate'],
-    queryFn: async () => {
+    queryKey: selectedOperator 
+      ? [api.operators.getReports(selectedOperator)]
+      : ['/api/v1/reports-aggregate'],
+    queryFn: async ({ queryKey }) => {
+      if (selectedOperator) {
+        const response = await fetch(queryKey[0] as string);
+        if (response.ok) {
+          return await response.json();
+        }
+        return [];
+      }
+      
       if (allRoutes && allRoutes.length > 0) {
         const allReports: Report[] = [];
         for (const route of allRoutes.slice(0, 5)) {
@@ -66,7 +78,7 @@ export default function Reports() {
       }
       return [];
     },
-    enabled: !!allRoutes && allRoutes.length > 0,
+    enabled: selectedOperator ? true : (!!allRoutes && allRoutes.length > 0),
   });
 
   const createReportMutation = useMutation({
@@ -76,7 +88,10 @@ export default function Reports() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/v1/reports-aggregate'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/v1/reports-sample'] });
+      if (selectedOperator) {
+        queryClient.invalidateQueries({ queryKey: [api.operators.getReports(selectedOperator)] });
+        queryClient.invalidateQueries({ queryKey: [api.operators.getRoutes(selectedOperator)] });
+      }
       setIsDialogOpen(false);
       toast({
         title: "Raport dodany",
