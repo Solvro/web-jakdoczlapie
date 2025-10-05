@@ -4,7 +4,7 @@
 
 JakDoczłapię is an admin dashboard application for bus/transport operators to manage routes, schedules, reports, and real-time vehicle tracking. The application serves as a utility-focused admin tool prioritizing data clarity, operational efficiency, and rapid task completion for monitoring public transportation systems.
 
-The system is built as a full-stack TypeScript application with a React frontend and Express backend, featuring a proxy architecture to communicate with an external transportation API.
+The system is built as a frontend-only TypeScript application with React, communicating directly with an external transportation API.
 
 ## User Preferences
 
@@ -36,37 +36,26 @@ Preferred communication style: Simple, everyday language.
 - Real-time data updates with automatic refetching
 - **Operator selection and filtering**: Global operator context with dropdown selector in header for filtering all data by transport operator
 
-### Backend Architecture
+### API Integration
 
-**Framework**: Express.js with TypeScript
-- **Server Setup**: HTTP server with JSON/URL-encoded body parsing
-- **API Pattern**: Proxy architecture forwarding requests to external API
-- **Development Tools**: Vite middleware for HMR in development
-
-**Proxy Implementation**:
-- All `/api/v1/*` requests are proxied to `https://jak-doczlapie-hackyeah.b.solvro.pl/api/v1`
-- Preserves HTTP methods, headers, and request bodies
-- Handles both JSON and text responses
-- Authorization headers passed through when present
+**Direct API Communication**:
+- Frontend makes direct HTTP requests to external API at `https://jak-doczlapie-hackyeah.b.solvro.pl`
+- No backend proxy server required
+- All API calls handled through TanStack Query (React Query)
+- Base URL configured in `client/src/lib/queryClient.ts`
 
 **Data Layer**:
-- Drizzle ORM configured for PostgreSQL (via Neon serverless)
 - Schema definitions with Zod validation in shared directory
-- Database configuration in `drizzle.config.ts`
-- Migration support with `drizzle-kit`
-
-**Storage Interface**:
-- Abstracted storage layer with `IStorage` interface
-- In-memory implementation (`MemStorage`) for user data
-- Prepared for database-backed implementation
+- Type-safe API responses using TypeScript interfaces
+- Client-side state management via React Query cache
 
 ### Application Structure
 
-**Monorepo Layout**:
-- `/client` - React frontend application
-- `/server` - Express backend server
+**Application Layout**:
+- `/client` - React frontend application (main app directory)
 - `/shared` - Shared TypeScript schemas and types
 - `/attached_assets` - Static assets and API documentation
+- `/server` - Legacy backend files (not in use)
 
 **Key Routes**:
 1. **Dashboard** (`/`) - Overview statistics and recent reports
@@ -115,9 +104,9 @@ Preferred communication style: Simple, everyday language.
 - **Development**: Replit-specific plugins for runtime errors and cartographer
 
 **API Integration**:
-- RESTful API consumed through proxy at `/api/v1/*`
+- RESTful API consumed directly from `https://jak-doczlapie-hackyeah.b.solvro.pl/api/v1`
 - OpenAPI/Swagger documentation available in `attached_assets/swagger_1759631884723.yml`
-- All requests proxied to external API: `https://jak-doczlapie-hackyeah.b.solvro.pl/api/v1`
+- No backend proxy - all requests made directly from browser
 
 **Available Endpoints**:
 
